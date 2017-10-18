@@ -1,0 +1,5 @@
+out
+.vscode
+
+# Ignore Mac specific files
+.DS_Store
