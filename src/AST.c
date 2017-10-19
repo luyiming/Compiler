@@ -2,7 +2,6 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-#include "../out/syntax.tab.h"
 #include "../include/AST.h"
 
 struct ASTNode *ASTroot = NULL;
@@ -87,4 +86,15 @@ void ASTwalk(struct ASTNode *parent, int indention) {
     for (struct ASTNode *p = parent->child; p != NULL; p = p->sibling) {
         ASTwalk(p, indention + 1);
     }
+}
+
+void freeAST(struct ASTNode* parent) {
+    if (parent == NULL)
+        return;
+
+    for (struct ASTNode *p = parent->child; p != NULL; p = p->sibling) {
+        freeAST(p);
+    }
+
+    free(parent);
 }

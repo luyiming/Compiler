@@ -5,6 +5,7 @@ extern FILE *yyin;
 extern int yylex(void);
 extern void yyrestart(FILE*);
 extern int yyparse(void);
+extern struct ASTNode *ASTroot;
 
 int main(int argc, char **argv)
 {
@@ -20,6 +21,8 @@ int main(int argc, char **argv)
     yyparse();
 
     ASTwalk(ASTroot, 0);
+    freeAST(ASTroot);
+    ASTroot = NULL;
 
     return 0;
 }

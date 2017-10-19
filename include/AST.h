@@ -37,6 +37,8 @@ struct ASTNode * newASTNode(enum ASTNodeType type, int lineno);
 
 int addASTNode(struct ASTNode* parent, int count, ...);
 
+void freeAST(struct ASTNode* parent);
+
 void ASTwalk(struct ASTNode *parent, int indention);
 
 extern struct ASTNode *ASTroot;
