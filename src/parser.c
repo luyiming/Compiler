@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "../include/AST.h"
 
 extern FILE *yyin;
 extern int yylex(void);
@@ -17,6 +18,9 @@ int main(int argc, char **argv)
     }
     yyrestart(f);
     yyparse();
+
+    ASTwalk(ASTroot, 0);
+
     return 0;
 }
 

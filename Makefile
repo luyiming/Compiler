@@ -1,10 +1,10 @@
 CC := gcc
 
-parser: src/syntax.y src/lexical.l src/parser.c
+parser: src/syntax.y src/lexical.l src/parser.c src/AST.c
 	@mkdir -p out
 	flex -o out/lex.yy.c src/lexical.l
 	bison src/syntax.y -d -v --locations -o out/syntax.tab.c
-	$(CC) out/syntax.tab.c src/parser.c -lfl -ly -o out/parser
+	$(CC) out/syntax.tab.c src/parser.c src/AST.c -lfl -ly -o out/parser
 
 scanner: src/lexical.l
 	@mkdir -p out
