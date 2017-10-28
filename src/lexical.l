@@ -15,7 +15,7 @@ int str2i(const char* str) {
     if (str[1] == 'x' || str[1] == 'X') {
       sscanf(str + 2, "%x", &res);
     }
-    else if (str[1] != NULL) {
+    else if (str[1] != '\0') {
       sscanf(str + 1, "%o", &res);
     }
     else {
@@ -54,6 +54,12 @@ id      [_a-zA-Z][_a-zA-Z0-9]*
 "+"             { debug("PLUS");     yylval = newASTNode(AST_PLUS, yylloc.first_line);      return PLUS; }
 "-"             { debug("MINUS");    yylval = newASTNode(AST_MINUS, yylloc.first_line);     return MINUS; }
 "*"             { debug("STAR");     yylval = newASTNode(AST_STAR, yylloc.first_line);      return STAR; }
+"//"            { debug("LCOMMENT");
+                  char c = input();
+                  while (c != '\n') {
+                    c = input();
+                  }
+                }
 "/"             { debug("DIV");      yylval = newASTNode(AST_DIV, yylloc.first_line);       return DIV; }
 "&&"            { debug("AND");      yylval = newASTNode(AST_AND, yylloc.first_line);       return AND; }
 "||"            { debug("OR");       yylval = newASTNode(AST_OR, yylloc.first_line);        return OR; }
@@ -74,11 +80,6 @@ id      [_a-zA-Z][_a-zA-Z0-9]*
 {id}            { debug("ID");       yylval = newASTNode(AST_ID, yylloc.first_line);        strcpy(yylval->val.c, yytext); return ID; }
 \n              { yycolumn = 1; }
 {ws}+           { }
-
-"//" {
-    char c = input();
-    while (c != '\n') c = input();
-}
 
 . {
     printf("Error type A at Line %d: Mysterious characters \"%s", yylineno, yytext);
