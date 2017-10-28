@@ -1,11 +1,31 @@
 %{
 #include <string.h>
+#include <stdio.h>
 #include <ctype.h>
 #include "syntax.tab.h"
 #include "../include/AST.h"
 
 void debug(const char* type) {
     printf("%3d %-8s %s\n", yylineno, type, yytext);
+}
+
+int str2i(const char* str) {
+  int res;
+  if (str[0] == '0') {
+    if (str[1] == 'x' || str[1] == 'X') {
+      sscanf(str + 2, "%x", &res);
+    }
+    else if (str[1] != NULL) {
+      sscanf(str + 1, "%o", &res);
+    }
+    else {
+      res = 0;
+    }
+  }
+  else {
+    sscanf(str, "%n", &res);
+  }
+  return res;
 }
 
 int yycolumn = 1;
@@ -25,7 +45,7 @@ float   ([0-9]*\.[0-9]+|[0-9]+\.[0-9]*)([Ee][+-]?[0-9]+)?
 id      [_a-zA-Z][_a-zA-Z0-9]*
 %%
 
-{int}           { debug("INT");      yylval = newASTNode(AST_INT, yylloc.first_line);       yylval->val.i = atoi(yytext); return INT; }
+{int}           { debug("INT");      yylval = newASTNode(AST_INT, yylloc.first_line);       yylval->val.i = str2i(yytext); return INT; }
 {float}         { debug("FLOAT");    yylval = newASTNode(AST_FLOAT, yylloc.first_line);     yylval->val.d = atof(yytext); return FLOAT; }
 ";"             { debug("SEMI");     yylval = newASTNode(AST_SEMI, yylloc.first_line);      return SEMI; }
 ","             { debug("COMMA");    yylval = newASTNode(AST_COMMA, yylloc.first_line);     return COMMA; }
