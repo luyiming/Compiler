@@ -23,7 +23,7 @@ int str2i(const char* str) {
     }
   }
   else {
-    sscanf(str, "%n", &res);
+    sscanf(str, "%d", &res);
   }
   return res;
 }
@@ -43,6 +43,8 @@ relop   ">"|"<"|">="|"<="|"=="|"!="
 int     (0|[1-9][0-9]*|0[0-7]+|0[Xx][0-9A-Fa-f]+)
 float   ([0-9]*\.[0-9]+|[0-9]+\.[0-9]*)([Ee][+-]?[0-9]+)?
 id      [_a-zA-Z][_a-zA-Z0-9]*
+
+%x COMMENT
 %%
 
 {int}           { debug("INT");      yylval = newASTNode(AST_INT, yylloc.first_line);       yylval->val.i = str2i(yytext); return INT; }
@@ -54,12 +56,11 @@ id      [_a-zA-Z][_a-zA-Z0-9]*
 "+"             { debug("PLUS");     yylval = newASTNode(AST_PLUS, yylloc.first_line);      return PLUS; }
 "-"             { debug("MINUS");    yylval = newASTNode(AST_MINUS, yylloc.first_line);     return MINUS; }
 "*"             { debug("STAR");     yylval = newASTNode(AST_STAR, yylloc.first_line);      return STAR; }
-"//"            { debug("LCOMMENT");
-                  char c = input();
-                  while (c != '\n') {
-                    c = input();
-                  }
-                }
+"//".*          { debug("LCOMMENT"); }
+"/*"            { debug("BCOMMENT"); BEGIN(COMMENT); }
+<COMMENT>"*/"   { BEGIN(INITIAL); }
+<COMMENT>.|\n   { }
+ /* 检查匹配；检查嵌套 */
 "/"             { debug("DIV");      yylval = newASTNode(AST_DIV, yylloc.first_line);       return DIV; }
 "&&"            { debug("AND");      yylval = newASTNode(AST_AND, yylloc.first_line);       return AND; }
 "||"            { debug("OR");       yylval = newASTNode(AST_OR, yylloc.first_line);        return OR; }
