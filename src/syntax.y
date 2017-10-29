@@ -9,6 +9,7 @@ void yyerror(char*);
 %locations
 %define api.value.type {struct ASTNode*}
  //TODO: add destructor; %destructor { freeAST($$); } <*>
+ //TODO: Main Work : improve 'Error Recovery'
 
 /* declared tokens */
 %token INT FLOAT
