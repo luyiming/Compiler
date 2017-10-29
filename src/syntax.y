@@ -147,5 +147,4 @@ Args : Exp COMMA Args               { $$ = newASTNode(AST_Args, @$.first_line); 
 
 void yyerror(char *msg) {
   reportError('B', "%s", msg);
-    //printf("Error type B at Line %d: %s\n", yylloc.first_line, msg);
 }
