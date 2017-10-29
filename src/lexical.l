@@ -6,8 +6,10 @@
 #include "../include/AST.h"
 
 void debug(const char* type) {
-    printf("%3d %-8s %s\n", yylineno, type, yytext);
+  printf("%3d %-8s %s\n", yylineno, type, yytext);
 }
+#define reportError(type, format, ...) \
+  printf("Error type %c at Line %d: " format "\n", type, yylineno, ## __VA_ARGS__)
 
 int str2i(const char* str) {
   int res;
@@ -60,7 +62,7 @@ id      [_a-zA-Z][_a-zA-Z0-9]*
 "/*"            { debug("BCOMMENT"); BEGIN(COMMENT); }
 <COMMENT>"*/"   { BEGIN(INITIAL); }
 <COMMENT>.|\n   { }
- /*TODO: 检查匹配；检查嵌套 */
+<COMMENT><<EOF>>    { reportError('A', "unterminated comment"); BEGIN(INITIAL); }
 "/"             { debug("DIV");      yylval = newASTNode(AST_DIV, yylloc.first_line);       return DIV; }
 "&&"            { debug("AND");      yylval = newASTNode(AST_AND, yylloc.first_line);       return AND; }
 "||"            { debug("OR");       yylval = newASTNode(AST_OR, yylloc.first_line);        return OR; }
@@ -82,9 +84,6 @@ id      [_a-zA-Z][_a-zA-Z0-9]*
 \n              { yycolumn = 1; }
 {ws}+           { }
 
-. {
-    printf("Error type A at Line %d: Mysterious characters \'%s\'\n",
-      yylineno, yytext);
-}
+.               { reportError('A', "mysterious character \'%s\'", yytext); }
 
 %%
