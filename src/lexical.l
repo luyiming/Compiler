@@ -83,13 +83,8 @@ id      [_a-zA-Z][_a-zA-Z0-9]*
 {ws}+           { }
 
 . {
-    printf("Error type A at Line %d: Mysterious characters \"%s", yylineno, yytext);
-    char c = input();
-    while (!isspace(c)) {
-        printf("%c", c);
-        c = input();
-    }
-    printf("\"\n");
+    printf("Error type A at Line %d: Mysterious characters \'%s\'\n",
+      yylineno, yytext);
 }
 
 %%
