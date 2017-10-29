@@ -1,10 +1,2 @@
-struct Complex
-{
-  float real, image;
-};
-int main()
-{
-  struct Complex x;
-  y.image = 3.5;
-  z.real = .5;
-}
+int 6;
+intt x = 7;
