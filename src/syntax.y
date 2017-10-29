@@ -5,7 +5,10 @@ int yylex(void);
 void yyerror(char*);
 %}
 
+%locations
 %define api.value.type {struct ASTNode*}
+ //TODO: add destructor; %destructor { freeAST($$); } <*>
+ //TODO: add construction for error handling
 
 /* declared tokens */
 %token INT FLOAT
@@ -37,10 +40,12 @@ ExtDefList : ExtDef ExtDefList      { $$ = newASTNode(AST_ExtDefList, @$.first_l
 ExtDef : Specifier ExtDecList SEMI  { $$ = newASTNode(AST_ExtDef, @$.first_line); addASTNode($$, 3, $1, $2, $3); }
     | Specifier SEMI                { $$ = newASTNode(AST_ExtDef, @$.first_line); addASTNode($$, 2, $1, $2); }
     | Specifier FunDec CompSt       { $$ = newASTNode(AST_ExtDef, @$.first_line); addASTNode($$, 3, $1, $2, $3); }
+    | error SEMI
     ;
 
 ExtDecList : VarDec                 { $$ = newASTNode(AST_ExtDecList, @$.first_line); addASTNode($$, 1, $1); }
     | VarDec COMMA ExtDecList       { $$ = newASTNode(AST_ExtDecList, @$.first_line); addASTNode($$, 3, $1, $2, $3); }
+    | error COMMA ExtDecList
     ;
 
 /* Specifiers */
@@ -66,6 +71,7 @@ VarDec : ID                         { $$ = newASTNode(AST_VarDec, @$.first_line)
 
 FunDec : ID LP VarList RP           { $$ = newASTNode(AST_FunDec, @$.first_line); addASTNode($$, 4, $1, $2, $3, $4); }
     | ID LP RP                      { $$ = newASTNode(AST_FunDec, @$.first_line); addASTNode($$, 3, $1, $2, $3); }
+    | error RP
     ;
 
 VarList : ParamDec COMMA VarList    { $$ = newASTNode(AST_VarList, @$.first_line); addASTNode($$, 3, $1, $2, $3); }
@@ -77,6 +83,7 @@ ParamDec : Specifier VarDec         { $$ = newASTNode(AST_ParamDec, @$.first_lin
 
 /* Statements */
 CompSt : LC DefList StmtList RC     { $$ = newASTNode(AST_CompSt, @$.first_line); addASTNode($$, 4, $1, $2, $3, $4); }
+  //  | error RC
     ;
 
 StmtList : Stmt StmtList            { $$ = newASTNode(AST_StmtList, @$.first_line); addASTNode($$, 2, $1, $2); }
@@ -89,6 +96,7 @@ Stmt : Exp SEMI                                             { $$ = newASTNode(AS
     | IF LP Exp RP Stmt             %prec LOWER_THEN_ELSE   { $$ = newASTNode(AST_Stmt, @$.first_line); addASTNode($$, 5, $1, $2, $3, $4, $5); }
     | IF LP Exp RP Stmt ELSE Stmt                           { $$ = newASTNode(AST_Stmt, @$.first_line); addASTNode($$, 7, $1, $2, $3, $4, $5, $6, $7); }
     | WHILE LP Exp RP Stmt                                  { $$ = newASTNode(AST_Stmt, @$.first_line); addASTNode($$, 5, $1, $2, $3, $4, $5); }
+    | error SEMI
     ;
 
 /* Local Definitions */
@@ -97,6 +105,7 @@ DefList : Def DefList               { $$ = newASTNode(AST_DefList, @$.first_line
     ;
 
 Def : Specifier DecList SEMI        { $$ = newASTNode(AST_Def, @$.first_line); addASTNode($$, 3, $1, $2, $3); }
+    | Specifier error SEMI
     ;
 
 DecList : Dec                       { $$ = newASTNode(AST_DecList, @$.first_line); addASTNode($$, 1, $1); }
@@ -137,5 +146,5 @@ Args : Exp COMMA Args               { $$ = newASTNode(AST_Args, @$.first_line); 
 #include "lex.yy.c"
 
 void yyerror(char *msg) {
-    fprintf(stderr, "error: %s\n", msg);
+    printf("Error type B at Line %d: %s\n", yylloc.first_line, msg);
 }

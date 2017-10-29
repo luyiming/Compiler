@@ -60,7 +60,7 @@ id      [_a-zA-Z][_a-zA-Z0-9]*
 "/*"            { debug("BCOMMENT"); BEGIN(COMMENT); }
 <COMMENT>"*/"   { BEGIN(INITIAL); }
 <COMMENT>.|\n   { }
- /* 检查匹配；检查嵌套 */
+ /*TODO: 检查匹配；检查嵌套 */
 "/"             { debug("DIV");      yylval = newASTNode(AST_DIV, yylloc.first_line);       return DIV; }
 "&&"            { debug("AND");      yylval = newASTNode(AST_AND, yylloc.first_line);       return AND; }
 "||"            { debug("OR");       yylval = newASTNode(AST_OR, yylloc.first_line);        return OR; }
