@@ -41,12 +41,12 @@ ExtDefList : ExtDef ExtDefList      { $$ = newASTNode(AST_ExtDefList, @$.first_l
 ExtDef : Specifier ExtDecList SEMI  { $$ = newASTNode(AST_ExtDef, @$.first_line); addASTNode($$, 3, $1, $2, $3); }
     | Specifier SEMI                { $$ = newASTNode(AST_ExtDef, @$.first_line); addASTNode($$, 2, $1, $2); }
     | Specifier FunDec CompSt       { $$ = newASTNode(AST_ExtDef, @$.first_line); addASTNode($$, 3, $1, $2, $3); }
-    | error SEMI
+    | error SEMI                    { $$ = newASTNode(AST_ExtDef, @$.first_line); addASTNode($$, 2, newASTNode(AST_Error, @$.first_line), $2); }
     ;
 
 ExtDecList : VarDec                 { $$ = newASTNode(AST_ExtDecList, @$.first_line); addASTNode($$, 1, $1); }
     | VarDec COMMA ExtDecList       { $$ = newASTNode(AST_ExtDecList, @$.first_line); addASTNode($$, 3, $1, $2, $3); }
-    | error COMMA ExtDecList
+    | error COMMA ExtDecList        { $$ = newASTNode(AST_ExtDecList, @$.first_line); addASTNode($$, 3, newASTNode(AST_Error, @$.first_line), $2, $3); }
     ;
 
 /* Specifiers */
@@ -72,7 +72,7 @@ VarDec : ID                         { $$ = newASTNode(AST_VarDec, @$.first_line)
 
 FunDec : ID LP VarList RP           { $$ = newASTNode(AST_FunDec, @$.first_line); addASTNode($$, 4, $1, $2, $3, $4); }
     | ID LP RP                      { $$ = newASTNode(AST_FunDec, @$.first_line); addASTNode($$, 3, $1, $2, $3); }
-    | error RP
+    | error RP                      { $$ = newASTNode(AST_FunDec, @$.first_line); addASTNode($$, 2, newASTNode(AST_Error, @$.first_line), $2); }
     ;
 
 VarList : ParamDec COMMA VarList    { $$ = newASTNode(AST_VarList, @$.first_line); addASTNode($$, 3, $1, $2, $3); }
@@ -84,7 +84,7 @@ ParamDec : Specifier VarDec         { $$ = newASTNode(AST_ParamDec, @$.first_lin
 
 /* Statements */
 CompSt : LC DefList StmtList RC     { $$ = newASTNode(AST_CompSt, @$.first_line); addASTNode($$, 4, $1, $2, $3, $4); }
-  //  | error RC
+  //  | error RC                    { ... }
     ;
 
 StmtList : Stmt StmtList            { $$ = newASTNode(AST_StmtList, @$.first_line); addASTNode($$, 2, $1, $2); }
@@ -97,7 +97,7 @@ Stmt : Exp SEMI                                             { $$ = newASTNode(AS
     | IF LP Exp RP Stmt             %prec LOWER_THEN_ELSE   { $$ = newASTNode(AST_Stmt, @$.first_line); addASTNode($$, 5, $1, $2, $3, $4, $5); }
     | IF LP Exp RP Stmt ELSE Stmt                           { $$ = newASTNode(AST_Stmt, @$.first_line); addASTNode($$, 7, $1, $2, $3, $4, $5, $6, $7); }
     | WHILE LP Exp RP Stmt                                  { $$ = newASTNode(AST_Stmt, @$.first_line); addASTNode($$, 5, $1, $2, $3, $4, $5); }
-    | error SEMI
+    | error SEMI                                            { $$ = newASTNode(AST_Stmt, @$.first_line); addASTNode($$, 2, newASTNode(AST_Error, @$.first_line), $2); }
     ;
 
 /* Local Definitions */
@@ -106,7 +106,7 @@ DefList : Def DefList               { $$ = newASTNode(AST_DefList, @$.first_line
     ;
 
 Def : Specifier DecList SEMI        { $$ = newASTNode(AST_Def, @$.first_line); addASTNode($$, 3, $1, $2, $3); }
-    | Specifier error SEMI
+    | Specifier error SEMI          { $$ = newASTNode(AST_Def, @$.first_line); addASTNode($$, 3, $1, newASTNode(AST_Error, @$.first_line), $3); }
     ;
 
 DecList : Dec                       { $$ = newASTNode(AST_DecList, @$.first_line); addASTNode($$, 1, $1); }

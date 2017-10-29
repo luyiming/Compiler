@@ -16,6 +16,8 @@ const char *const ASTNodeTypeName[] = {
     "LC",         "RC",         "TYPE",
     "STRUCT",     "RETURN",     "IF",
     "ELSE",       "WHILE",      "ID",
+  //--- terminators above
+    "Error",
     "Program",    "ExtDefList", "ExtDef",
     "ExtDecList", "Specifier",  "StructSpecifier",
     "OptTag",     "Tag",        "VarDec",
@@ -30,6 +32,7 @@ struct ASTNode *newASTNode(enum ASTNodeType type, int lineno) {
     p->child = p->sibling = NULL;
     p->type = type;
     p->lineno = lineno;
+    return p;
 }
 
 int addASTNode(struct ASTNode *parent, int count, ...) {
@@ -78,6 +81,7 @@ void ASTwalk(struct ASTNode *parent, int indention) {
         case AST_CompSt:     case AST_StmtList:   case AST_Stmt:
         case AST_DefList:    case AST_Def:        case AST_DecList:
         case AST_Dec:        case AST_Exp:        case AST_Args:
+        case AST_Error:
             printf(" (%d)\n", parent->lineno); break;
 
         default : printf("\n");

@@ -11,6 +11,7 @@ enum ASTNodeType {
     AST_LC,         AST_RC,         AST_TYPE,
     AST_STRUCT,     AST_RETURN,     AST_IF,
     AST_ELSE,       AST_WHILE,      AST_ID,
+    AST_Error,
     AST_Program,    AST_ExtDefList, AST_ExtDef,
     AST_ExtDecList, AST_Specifier,  AST_StructSpecifier,
     AST_OptTag,     AST_Tag,        AST_VarDec,
