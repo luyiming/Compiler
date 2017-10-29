@@ -1,5 +1,9 @@
 #include <stdio.h>
 #include "../include/AST.h"
+#include "../include/debug.h"
+#ifdef YYDEBUG
+  extern int yydebug;
+#endif
 
 extern FILE *yyin;
 extern int yylex(void);
@@ -18,6 +22,9 @@ int main(int argc, char **argv)
         return 1;
     }
     yyrestart(f);
+  #ifdef YYDEBUG
+    yydebug = 1;
+  #endif
     yyparse();
 
     ASTwalk(ASTroot, 0);
@@ -26,4 +33,3 @@ int main(int argc, char **argv)
 
     return 0;
 }
-

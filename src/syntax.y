@@ -1,6 +1,7 @@
 %{
 #include <stdio.h>
 #include "../include/AST.h"
+#include "../include/debug.h"
 int yylex(void);
 void yyerror(char*);
 %}
