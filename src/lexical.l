@@ -4,9 +4,12 @@
 #include <ctype.h>
 #include "syntax.tab.h"
 #include "../include/AST.h"
+#include "../include/debug.h"
 
 void debug(const char* type) {
+#ifdef LEXDEBUG
   printf("%3d %-8s %s\n", yylineno, type, yytext);
+#endif
 }
 #define reportError(type, format, ...) \
   printf("Error type %c at Line %d: " format "\n", type, yylineno, ## __VA_ARGS__)
