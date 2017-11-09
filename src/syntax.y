@@ -50,12 +50,13 @@ ExtDef : Specifier ExtDecList SEMI  { $$ = newASTNode(AST_ExtDef, @$.first_line)
     | error SEMI                    { $$ = newASTNode(AST_ExtDef, @$.first_line); addASTNode($$, 2, newASTNode(AST_Error, @$.first_line), $2); yyerrok; }
     | Specifier error SEMI          { $$ = newASTNode(AST_ExtDef, @$.first_line); addASTNode($$, 3, $1, newASTNode(AST_Error, @$.first_line), $3); yyerrok; }
     | Specifier error               { $$ = newASTNode(AST_ExtDef, @$.first_line); addASTNode($$, 2, $1, newASTNode(AST_Error, @$.first_line)); yyerrok; }
+    | Specifier ExtDecList error    { $$ = newASTNode(AST_ExtDef, @$.first_line); addASTNode($$, 3, $1, $2, newASTNode(AST_Error, @$.first_line)); yyerrok; }
     ;
 
 ExtDecList : VarDec                 { $$ = newASTNode(AST_ExtDecList, @$.first_line); addASTNode($$, 1, $1); }
     | VarDec COMMA ExtDecList       { $$ = newASTNode(AST_ExtDecList, @$.first_line); addASTNode($$, 3, $1, $2, $3); }
     | error COMMA ExtDecList        { $$ = newASTNode(AST_ExtDecList, @$.first_line); addASTNode($$, 3, newASTNode(AST_Error, @$.first_line), $2, $3); yyerrok; }
-    | VarDec COMMA error        { $$ = newASTNode(AST_ExtDecList, @$.first_line); addASTNode($$, 3, $1, $2, newASTNode(AST_Error, @$.first_line)); yyerrok; }
+    | VarDec COMMA error            { $$ = newASTNode(AST_ExtDecList, @$.first_line); addASTNode($$, 3, $1, $2, newASTNode(AST_Error, @$.first_line)); yyerrok; }
     ;
 
 /* Specifiers */
@@ -65,6 +66,7 @@ Specifier : TYPE                    { $$ = newASTNode(AST_Specifier, @$.first_li
 
 StructSpecifier : STRUCT OptTag LC DefList RC   { $$ = newASTNode(AST_StructSpecifier, @$.first_line); addASTNode($$, 5, $1, $2, $3, $4, $5); }
     | STRUCT Tag                                { $$ = newASTNode(AST_StructSpecifier, @$.first_line); addASTNode($$, 2, $1, $2); }
+    | STRUCT OptTag LC error RC                 { $$ = newASTNode(AST_StructSpecifier, @$.first_line); addASTNode($$, 5, $1, $2, $3, newASTNode(AST_Error, @$.first_line), $5); yyerrok; }
     ;
 
 OptTag : ID                         { $$ = newASTNode(AST_OptTag, @$.first_line); addASTNode($$, 1, $1); }
@@ -93,7 +95,6 @@ ParamDec : Specifier VarDec         { $$ = newASTNode(AST_ParamDec, @$.first_lin
 
 /* Statements */
 CompSt : LC DefList StmtList RC     { $$ = newASTNode(AST_CompSt, @$.first_line); addASTNode($$, 4, $1, $2, $3, $4); }
-  //  | error RC                    { ... }
     ;
 
 StmtList : Stmt StmtList            { $$ = newASTNode(AST_StmtList, @$.first_line); addASTNode($$, 2, $1, $2); }
@@ -109,6 +110,9 @@ Stmt : Exp SEMI                                             { $$ = newASTNode(AS
     | error SEMI                                            { $$ = newASTNode(AST_Stmt, @$.first_line); addASTNode($$, 2, newASTNode(AST_Error, @$.first_line), $2); yyerrok; }
     | Exp error                                             { $$ = newASTNode(AST_Stmt, @$.first_line); addASTNode($$, 2, $1, newASTNode(AST_Error, @$.first_line)); yyerrok; }
     | RETURN Exp error                                      { $$ = newASTNode(AST_Stmt, @$.first_line); addASTNode($$, 3, $1, $2, newASTNode(AST_Error, @$.first_line)); yyerrok; }
+    | IF LP error RP Stmt             %prec LOWER_THEN_ELSE   { $$ = newASTNode(AST_Stmt, @$.first_line); addASTNode($$, 5, $1, $2, newASTNode(AST_Error, @$.first_line), $4, $5); yyerrok; }
+    | IF LP error RP Stmt ELSE Stmt                           { $$ = newASTNode(AST_Stmt, @$.first_line); addASTNode($$, 7, $1, $2, newASTNode(AST_Error, @$.first_line), $4, $5, $6, $7); yyerrok; }
+    | WHILE LP error RP Stmt                                  { $$ = newASTNode(AST_Stmt, @$.first_line); addASTNode($$, 5, $1, $2, newASTNode(AST_Error, @$.first_line), $4, $5); yyerrok; }
     ;
 
 /* Local Definitions */
@@ -148,6 +152,8 @@ Exp : Exp ASSIGNOP Exp              { $$ = newASTNode(AST_Exp, @$.first_line); a
     | ID                            { $$ = newASTNode(AST_Exp, @$.first_line); addASTNode($$, 1, $1); }
     | INT                           { $$ = newASTNode(AST_Exp, @$.first_line); addASTNode($$, 1, $1); }
     | FLOAT                         { $$ = newASTNode(AST_Exp, @$.first_line); addASTNode($$, 1, $1); }
+    | Exp LB error RB               { $$ = newASTNode(AST_Exp, @$.first_line); addASTNode($$, 4, $1, $2, newASTNode(AST_Error, @$.first_line), $4); yyerrok; }
+    | ID LP error RP                { $$ = newASTNode(AST_Exp, @$.first_line); addASTNode($$, 4, $1, $2, newASTNode(AST_Error, @$.first_line), $4); yyerrok; }
     ;
 
 Args : Exp COMMA Args               { $$ = newASTNode(AST_Args, @$.first_line); addASTNode($$, 3, $1, $2, $3); }

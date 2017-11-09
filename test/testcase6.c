@@ -1,3 +1,4 @@
 int main() {
     double x;
-}gg
+}
+intt x;
