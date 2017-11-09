@@ -101,6 +101,8 @@ Stmt : Exp SEMI                                             { $$ = newASTNode(AS
     | IF LP Exp RP Stmt ELSE Stmt                           { $$ = newASTNode(AST_Stmt, @$.first_line); addASTNode($$, 7, $1, $2, $3, $4, $5, $6, $7); }
     | WHILE LP Exp RP Stmt                                  { $$ = newASTNode(AST_Stmt, @$.first_line); addASTNode($$, 5, $1, $2, $3, $4, $5); }
     | error SEMI                                            { $$ = newASTNode(AST_Stmt, @$.first_line); addASTNode($$, 2, newASTNode(AST_Error, @$.first_line), $2); yyerrok; }
+    | Exp error                                             { $$ = newASTNode(AST_Stmt, @$.first_line); addASTNode($$, 2, $1, newASTNode(AST_Error, @$.first_line)); yyerrok; }
+    | RETURN Exp error                                      { $$ = newASTNode(AST_Stmt, @$.first_line); addASTNode($$, 3, $1, $2, newASTNode(AST_Error, @$.first_line)); yyerrok; }
     ;
 
 /* Local Definitions */
@@ -110,7 +112,7 @@ DefList : Def DefList               { $$ = newASTNode(AST_DefList, @$.first_line
 
 Def : Specifier DecList SEMI        { $$ = newASTNode(AST_Def, @$.first_line); addASTNode($$, 3, $1, $2, $3); }
     | Specifier error SEMI          { $$ = newASTNode(AST_Def, @$.first_line); addASTNode($$, 3, $1, newASTNode(AST_Error, @$.first_line), $3); yyerrok; }
-   // | error SEMI                    { $$ = newASTNode(AST_Def, @$.first_line); addASTNode($$, 2, newASTNode(AST_Error, @$.first_line), $2); yyerrok; }
+    | Specifier DecList error       { $$ = newASTNode(AST_Def, @$.first_line); addASTNode($$, 3, $1, $2, newASTNode(AST_Error, @$.first_line)); yyerrok; }
     ;
 
 DecList : Dec                       { $$ = newASTNode(AST_DecList, @$.first_line); addASTNode($$, 1, $1); }
