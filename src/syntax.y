@@ -49,6 +49,7 @@ ExtDef : Specifier ExtDecList SEMI  { $$ = newASTNode(AST_ExtDef, @$.first_line)
 ExtDecList : VarDec                 { $$ = newASTNode(AST_ExtDecList, @$.first_line); addASTNode($$, 1, $1); }
     | VarDec COMMA ExtDecList       { $$ = newASTNode(AST_ExtDecList, @$.first_line); addASTNode($$, 3, $1, $2, $3); }
     | error COMMA ExtDecList        { $$ = newASTNode(AST_ExtDecList, @$.first_line); addASTNode($$, 3, newASTNode(AST_Error, @$.first_line), $2, $3); yyerrok; }
+    | VarDec COMMA error        { $$ = newASTNode(AST_ExtDecList, @$.first_line); addASTNode($$, 3, $1, $2, newASTNode(AST_Error, @$.first_line)); yyerrok; }
     ;
 
 /* Specifiers */
