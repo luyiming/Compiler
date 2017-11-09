@@ -16,6 +16,7 @@ void yyerror(char*);
 } <>
 %destructor { /* succeed */ } Program
  //TODO: Main Work : improve 'Error Recovery'
+ //不同处理方法产生不同结果，有时意想不到，但是解释得通
 
 /* declared tokens */
 %token INT FLOAT
