@@ -1,0 +1,2 @@
+Error type B at Line 3: dont care.
+Error type B at Line 4: dont care.
