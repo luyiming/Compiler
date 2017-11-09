@@ -43,6 +43,7 @@ ExtDef : Specifier ExtDecList SEMI  { $$ = newASTNode(AST_ExtDef, @$.first_line)
     | Specifier FunDec CompSt       { $$ = newASTNode(AST_ExtDef, @$.first_line); addASTNode($$, 3, $1, $2, $3); }
     | error SEMI                    { $$ = newASTNode(AST_ExtDef, @$.first_line); addASTNode($$, 2, newASTNode(AST_Error, @$.first_line), $2); yyerrok; }
     | Specifier error SEMI          { $$ = newASTNode(AST_ExtDef, @$.first_line); addASTNode($$, 3, $1, newASTNode(AST_Error, @$.first_line), $3); yyerrok; }
+    | Specifier error               { $$ = newASTNode(AST_ExtDef, @$.first_line); addASTNode($$, 2, $1, newASTNode(AST_Error, @$.first_line)); yyerrok; }
     ;
 
 ExtDecList : VarDec                 { $$ = newASTNode(AST_ExtDecList, @$.first_line); addASTNode($$, 1, $1); }
@@ -73,7 +74,7 @@ VarDec : ID                         { $$ = newASTNode(AST_VarDec, @$.first_line)
 
 FunDec : ID LP VarList RP           { $$ = newASTNode(AST_FunDec, @$.first_line); addASTNode($$, 4, $1, $2, $3, $4); }
     | ID LP RP                      { $$ = newASTNode(AST_FunDec, @$.first_line); addASTNode($$, 3, $1, $2, $3); }
-    | error RP                      { $$ = newASTNode(AST_FunDec, @$.first_line); addASTNode($$, 2, newASTNode(AST_Error, @$.first_line), $2); yyerrok; }
+    | ID LP error RP                { $$ = newASTNode(AST_FunDec, @$.first_line); addASTNode($$, 4, $1, $2, newASTNode(AST_Error, @$.first_line), $4); yyerrok; }
     ;
 
 VarList : ParamDec COMMA VarList    { $$ = newASTNode(AST_VarList, @$.first_line); addASTNode($$, 3, $1, $2, $3); }
@@ -108,6 +109,7 @@ DefList : Def DefList               { $$ = newASTNode(AST_DefList, @$.first_line
 
 Def : Specifier DecList SEMI        { $$ = newASTNode(AST_Def, @$.first_line); addASTNode($$, 3, $1, $2, $3); }
     | Specifier error SEMI          { $$ = newASTNode(AST_Def, @$.first_line); addASTNode($$, 3, $1, newASTNode(AST_Error, @$.first_line), $3); yyerrok; }
+   // | error SEMI                    { $$ = newASTNode(AST_Def, @$.first_line); addASTNode($$, 2, newASTNode(AST_Error, @$.first_line), $2); yyerrok; }
     ;
 
 DecList : Dec                       { $$ = newASTNode(AST_DecList, @$.first_line); addASTNode($$, 1, $1); }
