@@ -44,4 +44,6 @@ void ASTwalk(struct ASTNode *parent, int indention);
 
 extern struct ASTNode *ASTroot;
 
+extern const char *const ASTNodeTypeName[];
+
 #endif // AST_H

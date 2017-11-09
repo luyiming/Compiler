@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "../include/AST.h"
 #include "../include/debug.h"
-#ifdef YYDEBUG
+#if YYDEBUG == 1
   extern int yydebug;
 #endif
 
@@ -22,7 +22,7 @@ int main(int argc, char **argv)
         return 1;
     }
     yyrestart(f);
-  #ifdef YYDEBUG
+  #if YYDEBUG == 1
     yydebug = 1;
   #endif
     yyparse();

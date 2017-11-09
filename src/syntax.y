@@ -8,7 +8,13 @@ void yyerror(char*);
 
 %locations
 %define api.value.type {struct ASTNode*}
- //TODO: add destructor; %destructor { freeAST($$); } <*>
+%destructor {
+#if YYDEBUG == 1
+    printf("free %s at Line %d\n", ASTNodeTypeName[$$->type], @$.first_line);
+#endif
+    freeAST($$);
+} <>
+%destructor { /* succeed */ } Program
  //TODO: Main Work : improve 'Error Recovery'
 
 /* declared tokens */
