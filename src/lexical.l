@@ -84,7 +84,7 @@ id      [_a-zA-Z][_a-zA-Z0-9]*
 "else"          { debug("ELSE");     yylval = newASTNode(AST_ELSE, yylloc.first_line);      return ELSE; }
 "while"         { debug("WHILE");    yylval = newASTNode(AST_WHILE, yylloc.first_line);     return WHILE; }
 {id}            { debug("ID");       yylval = newASTNode(AST_ID, yylloc.first_line);        strcpy(yylval->val.c, yytext); return ID; }
-\n              { yycolumn = 1; }
+\r\n|\n         { yycolumn = 1; }
 {ws}+           { }
 
 .               { reportError('A', "mysterious character \'%s\'", yytext); }
