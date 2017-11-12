@@ -2,7 +2,7 @@ CC := gcc
 CFLAGS := -lfl -ly
 BFLAGS := -d -v --locations
 PARSER := out/parser
-TESTCASE_ALL = $(wildcard test/*.* test/*/*.*)
+TESTCASE_ALL = $(wildcard test/*.* test/*/*.* test/*/*/*.*)
 
 parser: src/syntax.y src/lexical.l src/parser.c src/AST.c
 	@mkdir -p out
