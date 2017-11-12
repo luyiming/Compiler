@@ -10,6 +10,7 @@ extern int yylex(void);
 extern void yyrestart(FILE*);
 extern int yyparse(void);
 extern struct ASTNode *ASTroot;
+extern int cnt_error;
 
 int main(int argc, char **argv)
 {
@@ -27,7 +28,14 @@ int main(int argc, char **argv)
   #endif
     yyparse();
 
-    ASTwalk(ASTroot, 0);
+    if (cnt_error == 0) {
+      ASTwalk(ASTroot, 0);
+    }
+    else {
+    #ifdef ERROR_AST
+      ASTwalk(ASTroot, 0);
+    #endif
+    }
     freeAST(ASTroot);
     ASTroot = NULL;
 

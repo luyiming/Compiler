@@ -5,4 +5,6 @@
 
 // #define LEXDEBUG 1
 
+// #define ERROR_AST 1
+
 #endif

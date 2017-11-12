@@ -11,8 +11,10 @@ void debug(const char* type) {
   printf("%3d %-8s %s\n", yylineno, type, yytext);
 #endif
 }
+int cnt_error = 0;
 #define reportError(type, format, ...) \
-  printf("Error type %c at Line %d: " format "\n", type, yylineno, ## __VA_ARGS__)
+  printf("Error type %c at Line %d: " format "\n", type, yylineno, ## __VA_ARGS__); \
+  cnt_error ++
 
 int str2i(const char* str) {
   int res;
