@@ -1,6 +1,7 @@
 #include <stdio.h>
-#include "../include/AST.h"
-#include "../include/debug.h"
+#include "AST.h"
+#include "debug.h"
+#include "semantic.h"
 #if YYDEBUG == 1
   extern int yydebug;
 #endif
@@ -28,6 +29,7 @@ int main(int argc, char **argv)
   #endif
     yyparse();
 
+  #if PRINT_AST == 1
     if (cnt_error == 0) {
       ASTwalk(ASTroot, 0);
     }
@@ -36,6 +38,9 @@ int main(int argc, char **argv)
       ASTwalk(ASTroot, 0);
     #endif
     }
+  #endif
+    semantic_parse(ASTroot);
+    
     freeAST(ASTroot);
     ASTroot = NULL;
 

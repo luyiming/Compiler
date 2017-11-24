@@ -1,5 +1,5 @@
 CC := gcc
-CFLAGS := -lfl -ly
+CFLAGS := -lfl -ly -I./include
 BFLAGS := -d -v --locations
 PARSER := out/parser
 TESTCASE_ALL = $(wildcard test/pretest1/*.*)

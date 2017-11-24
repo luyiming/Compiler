@@ -2,7 +2,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-#include "../include/AST.h"
+#include "AST.h"
 
 struct ASTNode *ASTroot = NULL;
 

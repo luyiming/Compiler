@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <ctype.h>
 #include "syntax.tab.h"
-#include "../include/AST.h"
-#include "../include/debug.h"
+#include "AST.h"
+#include "debug.h"
 
 void debug(const char* type) {
 #ifdef LEXDEBUG
