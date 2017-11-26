@@ -68,7 +68,8 @@ enum ASTNodeSubtype {
     UNFINISHED,     TYPE_ARRAY,     EMPTY,
     VAR_USE,        FUNC_USE,       VOID_ARG,
     ARRAY_USE,      STRUCT_USE,     VAR_DEC,
-    FUNC_DEC,       VOID_DEC,       
+    FUNC_DEC,       VOID_DEC,       INITIALIZE,
+    
 };
 
 /* some constant */

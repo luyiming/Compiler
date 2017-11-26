@@ -1,10 +1,9 @@
-struct Tag {
-    int x, y;
-    float x;
-};
+int main() {
+    int a, b, c = 1.5;
+    (a+b) = c;
+    return 1.5;
+}
 
-struct Tag structVar;
-
-int x, y;
-int y;
-float x, z, z;
+float func() {
+    return 1;
+}

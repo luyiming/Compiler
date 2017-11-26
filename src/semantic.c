@@ -9,15 +9,12 @@
 #define NEST_DEPTH 20
 SymbolList id_symlist, type_symlist;
 Symbol cur_func = NULL;
-
 int struct_env_dep = 0;
 
 Symbol getIdDef(char *name) {
     Symbol cur_sym = id_symlist;
     while (cur_sym != NULL) {
-        if (strcmp(cur_sym->name, name) == 0) {
-            return cur_sym;
-        }
+        if (strcmp(cur_sym->name, name) == 0) return cur_sym;
         cur_sym = cur_sym->tail;
     }
     return NULL;
@@ -26,18 +23,14 @@ Symbol getIdDef(char *name) {
 Symbol getTypeDef(char *name) {
     Symbol cur_sym = type_symlist;
     while (cur_sym != NULL) {
-        if (strcmp(cur_sym->name, name) == 0) {
-            return cur_sym;
-        }
+        if (strcmp(cur_sym->name, name) == 0) return cur_sym;
         cur_sym = cur_sym->tail;
     }
     return NULL;
 }
 
 int addIdDef(Symbol sym) {
-    if (getIdDef(sym->name) != NULL) {
-        return -1; // redefined
-    }
+    if (getIdDef(sym->name) != NULL) return -1;
     sym->tail = id_symlist;
     id_symlist = sym;
     if (sym->kind == FUNC_DEF) {
@@ -47,13 +40,7 @@ int addIdDef(Symbol sym) {
 }
 
 int addTypeDef(Symbol sym) {
-    SymbolList cur_sym = type_symlist;
-    while (cur_sym != NULL) {
-        if (strcmp(cur_sym->name, sym->name) == 0) {
-            return -1;   // redefined
-        }
-        cur_sym = cur_sym->tail;
-    }
+    if (getTypeDef(sym->name) != NULL) return -1;
     sym->tail = type_symlist;
     type_symlist = sym;
     return 0;
@@ -70,21 +57,17 @@ Type getType(ASTNode specifier) {
             Symbol sym = getTypeDef(tag);
             if (sym != NULL) {
                 type = sym->u.type;
-            }
+            } // else: report 'undefined' somewhere else
         }
     }
     else {
         type = (Type)malloc(sizeof(struct Type_));
         type->kind = BASIC;
         char *typename = specifier->child->val.c;
-        if (strcmp(typename, "int") == 0) {
-            type->u.basic = TYPE_INT;
-        }
-        else if (strcmp(typename, "float") == 0) {
-            type->u.basic = TYPE_FLOAT;
-        }
+        if (strcmp(typename, "int") == 0) type->u.basic = TYPE_INT;
+        else if (strcmp(typename, "float") == 0) type->u.basic = TYPE_FLOAT;
         else {
-            panic("Unknowned basic type");
+            panic("Unknown basic type");
         }
     }
     return type;
@@ -117,6 +100,9 @@ FieldList buildFields(FieldList structure, ASTNode defList) {
     while (1) {
         ASTNode dec = decList->child;
         Symbol sym = getSym4VarDec(type, dec->child);
+        if (dec->subtype == INITIALIZE) {
+            reportError("15", dec->lineno, "Attemp to initialize field \"%s\"", sym->name);
+        }
         Field field = (Field)malloc(sizeof(struct FieldList_));
         strcpy(field->name, sym->name);
         field->type = sym->u.type;
@@ -132,23 +118,17 @@ FieldList buildFields(FieldList structure, ASTNode defList) {
         if (decList->subtype == UNFINISHED) {        
             decList = dec->sibling->sibling;
         }
-        else {
-            break;
-        }
+        else break;
     }
     return buildFields(structure, def->sibling);
 }
 
 int addField(FieldList structure, Field field) {
-    // structure is NOT NULL!
+    assert(structure != NULL);
     FieldList cur_field = structure;
     while (cur_field != NULL) {
-        if (strcmp(cur_field->name, field->name) == 0) {
-            return -1;
-        }
-        if (cur_field->tail == NULL) {
-            break;
-        }
+        if (strcmp(cur_field->name, field->name) == 0) return -1;
+        if (cur_field->tail == NULL) break; // find list_tail
         cur_field = cur_field->tail;
     }
     cur_field->tail = field;
@@ -159,9 +139,7 @@ int addField(FieldList structure, Field field) {
 Field getField(FieldList structure, char *name) {
     Field cur_field = structure;
     while (cur_field != NULL) {
-        if (strcmp(cur_field->name, name) == 0) {
-            return cur_field;
-        }
+        if (strcmp(cur_field->name, name) == 0) return cur_field;
         cur_field = cur_field->tail;
     }
     return NULL;
@@ -181,8 +159,11 @@ void decExtVar(Type type, ASTNode extDecList) {
 void decVar(Type type, ASTNode decList) {
     ASTNode dec = decList->child;
     Symbol sym = getSym4VarDec(type, dec->child);
+    if (dec->subtype == INITIALIZE && typeEqual(sym->u.type, checkExpType(dec->child->sibling->sibling)) == 0) {
+        reportError("5", dec->lineno, "Type mismatched for assignment");
+    }
     if (addIdDef(sym) < 0) {
-        reportError("3", decList->lineno, "Redefined variable \"%s\"", sym->name);
+        reportError("3", dec->lineno, "Redefined variable \"%s\"", sym->name);
     }
     if (decList->subtype == UNFINISHED) {
         decVar(type, dec->sibling->sibling);
@@ -203,7 +184,7 @@ Symbol getSym4VarDec(Type type, ASTNode varDec) {
         Type arr = (Type)malloc(sizeof(struct Type_));
         arr->kind = ARRAY;
         arr->u.array.elem = subSym->u.type;
-        // TODO :size
+        arr->u.array.size = varDec->child->sibling->sibling->val.i;
         sym->kind = VAR_DEF;
         strcpy(sym->name, subSym->name);
         sym->u.type = arr;
@@ -265,7 +246,7 @@ void semantic_parse(ASTNode parent) {
             else if (parent->subtype == VAR_DEC) {
                 decExtVar(type, parent->child->sibling);
             }
-            else if (parent->subtype == FUNC_DEC) {
+            else if (parent->subtype == FUNC_DEC) { // should be declared before check childs
                 decFunc(type, parent->child->sibling);
             }
         }   break;
@@ -275,11 +256,11 @@ void semantic_parse(ASTNode parent) {
             }
         }   break;
     }
-    
+    // go down
     for (ASTNode p = parent->child; p != NULL; p = p->sibling) {
         semantic_parse(p);
     }
-
+    // after
     // /**/printf("sem_parse:%s\n", ASTNodeTypeName[parent->type]);
     switch (parent->type) {
         case AST_Def: {
@@ -318,23 +299,16 @@ void semantic_parse(ASTNode parent) {
         }   break;
         case AST_Exp:   checkExpType(parent); break;
         case AST_Stmt:  checkStmtType(parent);  break;
-
-        // TODO
     }
 }
 
-Type checkExpType(ASTNode exp) { // TODO: duplicate check and report error
+Type checkExpType(ASTNode exp) {
     if (exp->expType != UNCHECKED) return exp->expType;
     Type type = NULL;
     ASTNode first = exp->child;
     switch (first->type) {
         case AST_Exp: {
             type = checkExpType(first);
-            if (first->sibling->type == AST_ASSIGNOP) {
-                if (isLeftVal(first) == 0) {
-                    reportError("6", exp->lineno, "The left-hand side of an assignment must be a variable");
-                }
-            }
             if (first->subtype == ARRAY_USE) {
                 type = checkExpType(first);
                 if (type != NULL) {
@@ -370,15 +344,37 @@ Type checkExpType(ASTNode exp) { // TODO: duplicate check and report error
                     }
                 }
             }
-            else if (typeEqual(type, checkExpType(first->sibling->sibling)) == 0) {
-                reportError("7", exp->lineno, "Type mismatched for operands");
-                type = NULL;
+            else {
+                switch (first->sibling->type) {
+                    case AST_ASSIGNOP: {
+                        if (isLeftVal(first) == 0) {
+                            reportError("6", exp->lineno, "The left-hand side of an assignment must be a variable");
+                        }
+                        if (typeEqual(type, checkExpType(first->sibling->sibling)) == 0) {
+                            reportError("5", exp->lineno, "Type mismatched for assignment");
+                            type = NULL;
+                        }
+                    }   break;
+                    case AST_AND:   case AST_OR:    case AST_RELOP: {
+                        type = (Type)malloc(sizeof(struct Type_));
+                        type->kind = BASIC;
+                        type->u.basic = TYPE_INT;
+                    }   break;
+                    case AST_PLUS:  case AST_MINUS: case AST_STAR:  case AST_DIV: {
+                        if (typeEqual(type, checkExpType(first->sibling->sibling)) == 0) {
+                            reportError("7", exp->lineno, "Type mismatched for operands");
+                            type = NULL;
+                        }
+                    }   break;
+                    default:    panic("Unknown Exp type");
+                }
             }
         }   break;
+        case AST_MINUS: case AST_LP:    type = checkExpType(first->sibling);   break;
         case AST_ID: {
             Symbol sym = getIdDef(first->val.c);
             if (sym == NULL) {
-                // printf("Undefined Id at Line %d\n", first->lineno);
+                // reportError somewhere else
                 type = NULL;
             }
             else if (first->subtype == FUNC_USE) {
@@ -388,7 +384,7 @@ Type checkExpType(ASTNode exp) { // TODO: duplicate check and report error
                 type = sym->u.type;
             }
         }   break;
-        case AST_INT: {
+        case AST_INT: case AST_NOT: {
             type = (Type)malloc(sizeof(struct Type_));
             type->kind = BASIC;
             type->u.basic = TYPE_INT;
@@ -398,8 +394,7 @@ Type checkExpType(ASTNode exp) { // TODO: duplicate check and report error
             type->kind = BASIC;
             type->u.basic = TYPE_FLOAT;
         }   break;
-
-        // TODO
+        default:        panic("Unknown Exp type");
     }
     exp->expType = type;
     return type;
@@ -409,16 +404,15 @@ int isLeftVal(ASTNode exp) {
     ASTNode first = exp->child;
     switch (first->type) {
         case AST_Exp: {
-            if (first->sibling->type == AST_LB || first->sibling->type == AST_DOT) {
+            if (first->sibling->type == AST_LB || first->sibling->type == AST_DOT
+            || first->sibling->type == AST_ASSIGNOP) {
                 return 1;
             }
             return 0;
         }   break;
         case AST_LP:    return isLeftVal(first->sibling);   break;
         case AST_ID: {
-            if (first->subtype == FUNC_USE) {
-                return 0;
-            }
+            if (first->subtype == FUNC_USE) return 0;
             return 1;
         }   break;
         default:        return 0;
@@ -427,11 +421,12 @@ int isLeftVal(ASTNode exp) {
 }
 
 int typeEqual(Type t1, Type t2) {
-    if (t1 == NULL || t2 == NULL) return 0;
+    if (t1 == NULL || t2 == NULL) return 1;
     if (t1->kind != t2->kind) return 0;
     if (t1->kind == BASIC) return t1->u.basic == t2->u.basic;
     if (t1->kind == STRUCTURE) return structEqual(t1->u.structure, t2->u.structure);
-    unimplemented();
+    // if (t1->kind == ARRAY) return typeEqual(t1->u.array.elem, t2->u.array.elem);
+    panic("Unknown Type");
 }
 
 int structEqual(FieldList st1, FieldList st2) {
@@ -443,6 +438,7 @@ int structEqual(FieldList st1, FieldList st2) {
 
 void checkStmtType(ASTNode stmt) {
     if (stmt->child->type == AST_RETURN) {
+        assert(cur_func);
         Type retType = cur_func->u.func->retType;
         if (typeEqual(retType, checkExpType(stmt->child->sibling)) == 0) {
             reportError("8", stmt->lineno, "Type mismatched for return");
@@ -452,26 +448,19 @@ void checkStmtType(ASTNode stmt) {
 
 void checkArgs(FieldList argList, ASTNode args) {
     int matched = 1;
+    assert(args);   // args->child == NULL if args is void
     if (args->child == NULL) {
-        if (argList != NULL) {
-            matched = 0;
-        }
+        if (argList != NULL) matched = 0;
     }
+    else if (argList == NULL) matched = 0;
     else {
-        if (argList == NULL) {
-            matched = 0;
-        }
-        else {
-            matched = typeEqual(argList->type, checkExpType(args->child));
-            if (matched) {
-                if (args->subtype == UNFINISHED) {
-                    checkArgs(argList->tail, args->child->sibling->sibling);
-                    return;
-                }
-                else if (argList->tail != NULL) {
-                    matched = 0;
-                }
+        matched = typeEqual(argList->type, checkExpType(args->child));
+        if (matched) {
+            if (args->subtype == UNFINISHED) {
+                checkArgs(argList->tail, args->child->sibling->sibling);
+                return;
             }
+            else if (argList->tail != NULL) matched = 0;
         }
     }
     if (matched == 0) {

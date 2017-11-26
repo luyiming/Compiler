@@ -47,12 +47,9 @@ ExtDefList : ExtDef ExtDefList      { $$ = newASTNode(AST_ExtDefList, @$.first_l
     | /* empty */                   { $$ = newASTNode(AST_ExtDefList, @$.first_line); }
     ;
 
-ExtDef : Specifier ExtDecList SEMI  { $$ = newASTNode(AST_ExtDef, @$.first_line); $$->subtype = VAR_DEC; addASTNode($$, 3, $1, $2, $3); 
-                                        /*decExtVar(getType($1), $2);*/ }
-    | Specifier SEMI                { $$ = newASTNode(AST_ExtDef, @$.first_line); $$->subtype = VOID_DEC; addASTNode($$, 2, $1, $2); 
-                                        /*getType($1);*/ }
-    | Specifier FunDec CompSt       { $$ = newASTNode(AST_ExtDef, @$.first_line); $$->subtype = FUNC_DEC; addASTNode($$, 3, $1, $2, $3);
-                                       /* decFunc(getType($1), $2);*/ }
+ExtDef : Specifier ExtDecList SEMI  { $$ = newASTNode(AST_ExtDef, @$.first_line); $$->subtype = VAR_DEC; addASTNode($$, 3, $1, $2, $3); }
+    | Specifier SEMI                { $$ = newASTNode(AST_ExtDef, @$.first_line); $$->subtype = VOID_DEC; addASTNode($$, 2, $1, $2); }
+    | Specifier FunDec CompSt       { $$ = newASTNode(AST_ExtDef, @$.first_line); $$->subtype = FUNC_DEC; addASTNode($$, 3, $1, $2, $3); }
     | error SEMI                    { $$ = newASTNode(AST_ExtDef, @$.first_line); addASTNode($$, 2, newASTNode(AST_Error, @$.first_line), $2); yyerrok; }
     | Specifier error SEMI          { $$ = newASTNode(AST_ExtDef, @$.first_line); addASTNode($$, 3, $1, newASTNode(AST_Error, @$.first_line), $3); yyerrok; }
     | Specifier error               { $$ = newASTNode(AST_ExtDef, @$.first_line); addASTNode($$, 2, $1, newASTNode(AST_Error, @$.first_line)); yyerrok; }
@@ -136,7 +133,7 @@ DecList : Dec                       { $$ = newASTNode(AST_DecList, @$.first_line
     ;
 
 Dec : VarDec                        { $$ = newASTNode(AST_Dec, @$.first_line); addASTNode($$, 1, $1); }
-    | VarDec ASSIGNOP Exp           { $$ = newASTNode(AST_Dec, @$.first_line); addASTNode($$, 3, $1, $2, $3); }
+    | VarDec ASSIGNOP Exp           { $$ = newASTNode(AST_Dec, @$.first_line); $$->subtype = INITIALIZE; addASTNode($$, 3, $1, $2, $3); }
     ;
 
 /* Expressions */

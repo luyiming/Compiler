@@ -11,9 +11,12 @@ parser: src/syntax.y src/lexical.l src/parser.c src/AST.c
 	bison src/syntax.y $(BFLAGS) -o out/syntax.tab.c
 	$(CC) out/syntax.tab.c $(CSOURCE) $(CFLAGS) -o $(PARSER)
 
-TESTCASE := test/pretest2/22.txt
+TESTCASE := test/testcase2.c
 test: parser
 	$(PARSER) $(TESTCASE)
+
+test-gcc:
+	gcc -x c $(TESTCASE) > /dev/null
 
 testall: parser
 	@bash test.sh $(TESTCASE_ALL)

@@ -1,11 +1,9 @@
-struct tag {
-    intt x;
-};
+struct St {
+    int x = 666;
+} x, y, z;
 
-struct tag xx;
-int tag;
-void tag(int i);
-
-struct tag {
-    int x;
+int main() {
+    int ar[10], br[6];
+    x = y + z;
+    ar = br;
 }
