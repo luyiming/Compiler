@@ -10,7 +10,7 @@ extern FILE *yyin;
 extern int yylex(void);
 extern void yyrestart(FILE*);
 extern int yyparse(void);
-extern struct ASTNode *ASTroot;
+extern ASTNode ASTroot;
 extern int cnt_error;
 
 int main(int argc, char **argv)

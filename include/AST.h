@@ -23,10 +23,13 @@ enum ASTNodeType {
 
 #define TOKEN_SIZE 100
 
-struct ASTNode {
+typedef struct ASTNode_ *ASTNode;
+enum ASTNodeSubtype;
+struct ASTNode_ {
     enum ASTNodeType type;
+    int subtype;    // for semantic parse, specify the production for derivation
     int lineno;
-    struct ASTNode *child, *sibling;
+    ASTNode child, sibling;
     union {
         int i;
         double d;
@@ -34,15 +37,15 @@ struct ASTNode {
     } val;
 };
 
-struct ASTNode * newASTNode(enum ASTNodeType type, int lineno);
+ASTNode newASTNode(enum ASTNodeType type, int lineno);
 
-int addASTNode(struct ASTNode* parent, int count, ...);
+int addASTNode(ASTNode parent, int count, ...);
 
-void freeAST(struct ASTNode* parent);
+void freeAST(ASTNode parent);
 
-void ASTwalk(struct ASTNode *parent, int indention);
+void ASTwalk(ASTNode parent, int indention);
 
-extern struct ASTNode *ASTroot;
+extern ASTNode ASTroot;
 
 extern const char *const ASTNodeTypeName[];
 

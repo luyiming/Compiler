@@ -2,4 +2,10 @@ struct tag {
     intt x;
 };
 
-StructType xx;
+struct tag xx;
+int tag;
+void tag(int i);
+
+struct tag {
+    int x;
+}

@@ -1,3 +1,10 @@
-struct tag {
-    int x = 6;
-}
+struct Tag {
+    int x, y;
+    float x;
+};
+
+struct Tag structVar;
+
+int x, y;
+int y;
+float x, z, z;

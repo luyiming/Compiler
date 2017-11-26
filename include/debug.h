@@ -9,4 +9,8 @@
 
 // #define ERROR_AST 1
 
+#include <stdio.h>
+#include <assert.h>
+#define panic() printf("[DEBUG]TODO\n");assert(0)
+
 #endif

@@ -3,8 +3,9 @@
 #include <stdio.h>
 #include <string.h>
 #include "AST.h"
+#include "semantic.h"
 
-struct ASTNode *ASTroot = NULL;
+ASTNode ASTroot = NULL;
 
 const char *const ASTNodeTypeName[] = {
     "INT",        "FLOAT",      "SEMI",
@@ -27,25 +28,26 @@ const char *const ASTNodeTypeName[] = {
     "Dec",        "Exp",        "Args"
 };
 
-struct ASTNode *newASTNode(enum ASTNodeType type, int lineno) {
-    struct ASTNode *p = (struct ASTNode *)malloc(sizeof(struct ASTNode));
+ASTNode newASTNode(enum ASTNodeType type, int lineno) {
+    ASTNode p = (ASTNode )malloc(sizeof(struct ASTNode_));
     p->child = p->sibling = NULL;
     p->type = type;
+    p->subtype = DONTCARE;
     p->lineno = lineno;
     return p;
 }
 
-int addASTNode(struct ASTNode *parent, int count, ...) {
+int addASTNode(ASTNode parent, int count, ...) {
     if (count < 1)
         return -1;
 
     va_list argp;
     va_start(argp, count);
 
-    struct ASTNode *p, *q;
-    parent->child = p = va_arg(argp, struct ASTNode *);
+    ASTNode p, q;
+    parent->child = p = va_arg(argp, ASTNode);
     for (int i = 1; i < count; i++) {
-        q = va_arg(argp, struct ASTNode *);
+        q = va_arg(argp, ASTNode);
         p->sibling = q;
         p = q;
     }
@@ -54,7 +56,7 @@ int addASTNode(struct ASTNode *parent, int count, ...) {
     return 0;
 }
 
-void ASTwalk(struct ASTNode *parent, int indention) {
+void ASTwalk(ASTNode parent, int indention) {
     if (parent == NULL)
         return;
 
@@ -87,16 +89,16 @@ void ASTwalk(struct ASTNode *parent, int indention) {
         default : printf("\n");
     }
 
-    for (struct ASTNode *p = parent->child; p != NULL; p = p->sibling) {
+    for (ASTNode p = parent->child; p != NULL; p = p->sibling) {
         ASTwalk(p, indention + 1);
     }
 }
 
-void freeAST(struct ASTNode* parent) {
+void freeAST(ASTNode parent) {
     if (parent == NULL)
         return;
 
-    for (struct ASTNode *p = parent->child; p != NULL; p = p->sibling) {
+    for (ASTNode p = parent->child; p != NULL; p = p->sibling) {
         freeAST(p);
     }
 
