@@ -8,7 +8,8 @@
 #define NEST_DEPTH 20
 SymbolList id_symlist, type_symlist;
 Symbol cur_func = NULL;
-TypeList type_list = NULL;
+
+int struct_env_dep = 0;
 
 Symbol getIdDef(char *name) {
     Symbol cur_sym = id_symlist;
@@ -65,7 +66,10 @@ Type getType(ASTNode specifier) {
         }
         else {
             char *tag = specifier->child->child->sibling->child->val.c;
-            type = getTypeDef(tag)->u.type;
+            Symbol sym = getTypeDef(tag);
+            if (sym != NULL) {
+                type = sym->u.type;
+            }
         }
     }
     else {
@@ -101,6 +105,7 @@ Type newType(ASTNode structSpecifier) {
             printf("Duplicate StructDef at Line %d\n", structSpecifier->lineno);
         }
     }
+    return type;
 }
 
 FieldList buildFields(FieldList structure, ASTNode defList) {
@@ -249,9 +254,52 @@ FieldList buildArgs(FieldList argList, ASTNode varList) {
 void semantic_parse(ASTNode parent) {
     if (parent == NULL) return;
     if (parent->type > AST_Program && parent->child == NULL) return;
+    // child first
+    for (ASTNode p = parent->child; p != NULL; p = p->sibling) {
+        semantic_parse(p);
+    }
+
     // /**/printf("sem_parse:%s\n", ASTNodeTypeName[parent->type]);
     Symbol func_sym = NULL;
     switch (parent->type) {
+        case AST_ExtDef: {
+            Type type = getType(parent->child);
+            if (type == NULL) {
+                printf("Undefined Type at Line %d\n", parent->lineno);
+            }
+            else if (parent->subtype == VAR_DEC) {
+                decExtVar(type, parent->child->sibling);
+            }
+        }   break;
+        case AST_Specifier: {
+            Type type = getType(parent);
+            if (type == NULL) {
+                printf("Undefined Type at Line %d\n", parent->lineno);
+            }
+            else if (parent->subtype == FUNC_DEC) {
+                decFunc(type, parent->sibling);
+            }
+        }   break;
+        case AST_Def: {
+            if (struct_env_dep > 0) break;
+            Type type = getType(parent->child);
+            if (type == NULL) {
+                printf("Undefined Type at Line %d\n", parent->lineno);
+            }
+            else {
+                decVar(type, parent->child->sibling);
+            }
+        }   break;
+        case AST_LC: {
+            if (parent->subtype == NEW_STRUCT) {
+                struct_env_dep ++;
+            }
+        }   break;
+        case AST_StructSpecifier: {
+            if (parent->subtype == NEW_STRUCT) {
+                struct_env_dep --;
+            }
+        }   break;
         case AST_ID: {
             if (parent->subtype == VAR_USE) {
                 if (getIdDef(parent->val.c) == NULL) {
@@ -275,10 +323,6 @@ void semantic_parse(ASTNode parent) {
         case AST_Stmt:  checkStmtType(parent);  break;
 
         // TODO
-    }
-
-    for (ASTNode p = parent->child; p != NULL; p = p->sibling) {
-        semantic_parse(p);
     }
 }
 
@@ -334,11 +378,16 @@ Type checkExpType(ASTNode exp) { // TODO: duplicate check and report error
             }
         }   break;
         case AST_ID: {
-            if (first->subtype == FUNC_USE) {
-                type = getIdDef(first->val.c)->u.func->retType;
+            Symbol sym = getIdDef(first->val.c);
+            if (sym == NULL) {
+                printf("Undefined Id at Line %d\n", first->lineno);
+                type = NULL;
+            }
+            else if (first->subtype == FUNC_USE) {
+                type = sym->u.func->retType;
             }
             else {
-                type = getIdDef(first->val.c)->u.type;
+                type = sym->u.type;
             }
         }   break;
         case AST_INT: {

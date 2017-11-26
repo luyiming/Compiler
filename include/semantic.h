@@ -2,13 +2,8 @@
 #define __SEMANTIC_H__ 1
 
 #define NAME_SIZE 100
-typedef struct TypeList_* TypeList;
 typedef struct Type_* Type;
 typedef struct FieldList_* FieldList, *Field;
-struct TypeList_ {
-    Type type;
-    TypeList tail;
-};
 struct Type_ {
     enum { BASIC, ARRAY, STRUCTURE } kind;
     union {
@@ -68,10 +63,11 @@ void checkArgs(FieldList argList, ASTNode args);
 
 /* ASTNode.subtype enum */
 enum ASTNodeSubtype {
-    DONTCARE,   NEW_STRUCT,     TYPE_STRUCT,
-    UNFINISHED, TYPE_ARRAY,     EMPTY,
-    VAR_USE,    FUNC_USE,       VOID_ARG,
-    ARRAY_USE,  STRUCT_USE,     
+    DONTCARE = 0,   NEW_STRUCT,     TYPE_STRUCT,
+    UNFINISHED,     TYPE_ARRAY,     EMPTY,
+    VAR_USE,        FUNC_USE,       VOID_ARG,
+    ARRAY_USE,      STRUCT_USE,     VAR_DEC,
+    FUNC_DEC,       VOID_DEC,       
 };
 
 #endif

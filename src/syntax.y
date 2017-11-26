@@ -46,12 +46,12 @@ ExtDefList : ExtDef ExtDefList      { $$ = newASTNode(AST_ExtDefList, @$.first_l
     | /* empty */                   { $$ = newASTNode(AST_ExtDefList, @$.first_line); }
     ;
 
-ExtDef : Specifier ExtDecList SEMI  { $$ = newASTNode(AST_ExtDef, @$.first_line); addASTNode($$, 3, $1, $2, $3); 
-                                        decExtVar(getType($1), $2); }
-    | Specifier SEMI                { $$ = newASTNode(AST_ExtDef, @$.first_line); addASTNode($$, 2, $1, $2); 
-                                        getType($1); }
-    | Specifier FunDec CompSt       { $$ = newASTNode(AST_ExtDef, @$.first_line); addASTNode($$, 3, $1, $2, $3);
-                                        decFunc(getType($1), $2); }
+ExtDef : Specifier ExtDecList SEMI  { $$ = newASTNode(AST_ExtDef, @$.first_line); $$->subtype = VAR_DEC; addASTNode($$, 3, $1, $2, $3); 
+                                        /*decExtVar(getType($1), $2);*/ }
+    | Specifier SEMI                { $$ = newASTNode(AST_ExtDef, @$.first_line); $$->subtype = VOID_DEC; addASTNode($$, 2, $1, $2); 
+                                        /*getType($1);*/ }
+    | Specifier FunDec CompSt       { $$ = newASTNode(AST_ExtDef, @$.first_line); $1->subtype = FUNC_DEC; addASTNode($$, 3, $1, $2, $3);
+                                       /* decFunc(getType($1), $2);*/ }
     | error SEMI                    { $$ = newASTNode(AST_ExtDef, @$.first_line); addASTNode($$, 2, newASTNode(AST_Error, @$.first_line), $2); yyerrok; }
     | Specifier error SEMI          { $$ = newASTNode(AST_ExtDef, @$.first_line); addASTNode($$, 3, $1, newASTNode(AST_Error, @$.first_line), $3); yyerrok; }
     | Specifier error               { $$ = newASTNode(AST_ExtDef, @$.first_line); addASTNode($$, 2, $1, newASTNode(AST_Error, @$.first_line)); yyerrok; }
@@ -69,7 +69,7 @@ Specifier : TYPE                    { $$ = newASTNode(AST_Specifier, @$.first_li
     | StructSpecifier               { $$ = newASTNode(AST_Specifier, @$.first_line); $$->subtype = TYPE_STRUCT; addASTNode($$, 1, $1); }
     ;
 
-StructSpecifier : STRUCT OptTag LC DefList RC   { $$ = newASTNode(AST_StructSpecifier, @$.first_line); $$->subtype = NEW_STRUCT; addASTNode($$, 5, $1, $2, $3, $4, $5); }
+StructSpecifier : STRUCT OptTag LC DefList RC   { $$ = newASTNode(AST_StructSpecifier, @$.first_line); $$->subtype = NEW_STRUCT; $3->subtype = NEW_STRUCT; addASTNode($$, 5, $1, $2, $3, $4, $5); }
     | STRUCT Tag                                { $$ = newASTNode(AST_StructSpecifier, @$.first_line); addASTNode($$, 2, $1, $2); }
     | STRUCT OptTag LC error RC                 { $$ = newASTNode(AST_StructSpecifier, @$.first_line); addASTNode($$, 5, $1, $2, $3, newASTNode(AST_Error, @$.first_line), $5); yyerrok; }
     ;
@@ -125,7 +125,7 @@ DefList : Def DefList               { $$ = newASTNode(AST_DefList, @$.first_line
     | /* empty */                   { $$ = newASTNode(AST_DefList, @$.first_line); $$->subtype = EMPTY; }
     ;
 
-Def : Specifier DecList SEMI        { decVar(getType($1), $2); $$ = newASTNode(AST_Def, @$.first_line); addASTNode($$, 3, $1, $2, $3); }
+Def : Specifier DecList SEMI        { $$ = newASTNode(AST_Def, @$.first_line); addASTNode($$, 3, $1, $2, $3); }
     | Specifier error SEMI          { $$ = newASTNode(AST_Def, @$.first_line); addASTNode($$, 3, $1, newASTNode(AST_Error, @$.first_line), $3); yyerrok; }
     | Specifier DecList error       { $$ = newASTNode(AST_Def, @$.first_line); addASTNode($$, 3, $1, $2, newASTNode(AST_Error, @$.first_line)); yyerrok; }
     ;
