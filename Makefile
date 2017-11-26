@@ -1,6 +1,6 @@
 CC := gcc
 CFLAGS := -lfl -ly -I./include
-CSOURCE := src/parser.c src/AST.c src/semantic.c
+CSOURCE := src/parser.c src/AST.c src/semantic.c src/common.c
 BFLAGS := -d -v --locations
 PARSER := out/parser
 TESTCASE_ALL = $(wildcard test/pretest2/*.*)
@@ -11,7 +11,7 @@ parser: src/syntax.y src/lexical.l src/parser.c src/AST.c
 	bison src/syntax.y $(BFLAGS) -o out/syntax.tab.c
 	$(CC) out/syntax.tab.c $(CSOURCE) $(CFLAGS) -o $(PARSER)
 
-TESTCASE := test/pretest2/13.txt
+TESTCASE := test/pretest2/22.txt
 test: parser
 	$(PARSER) $(TESTCASE)
 

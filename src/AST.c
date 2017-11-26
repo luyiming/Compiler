@@ -32,8 +32,9 @@ ASTNode newASTNode(enum ASTNodeType type, int lineno) {
     ASTNode p = (ASTNode )malloc(sizeof(struct ASTNode_));
     p->child = p->sibling = NULL;
     p->type = type;
-    p->subtype = DONTCARE;
     p->lineno = lineno;
+    p->subtype = DONTCARE;
+    p->expType = UNCHECKED;
     return p;
 }
 

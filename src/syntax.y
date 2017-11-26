@@ -3,6 +3,7 @@
 #include "AST.h"
 #include "debug.h"
 #include "semantic.h"
+#include "common.h"
 int yylex(void);
 void yyerror(char*);
 %}
@@ -50,7 +51,7 @@ ExtDef : Specifier ExtDecList SEMI  { $$ = newASTNode(AST_ExtDef, @$.first_line)
                                         /*decExtVar(getType($1), $2);*/ }
     | Specifier SEMI                { $$ = newASTNode(AST_ExtDef, @$.first_line); $$->subtype = VOID_DEC; addASTNode($$, 2, $1, $2); 
                                         /*getType($1);*/ }
-    | Specifier FunDec CompSt       { $$ = newASTNode(AST_ExtDef, @$.first_line); $1->subtype = FUNC_DEC; addASTNode($$, 3, $1, $2, $3);
+    | Specifier FunDec CompSt       { $$ = newASTNode(AST_ExtDef, @$.first_line); $$->subtype = FUNC_DEC; addASTNode($$, 3, $1, $2, $3);
                                        /* decFunc(getType($1), $2);*/ }
     | error SEMI                    { $$ = newASTNode(AST_ExtDef, @$.first_line); addASTNode($$, 2, newASTNode(AST_Error, @$.first_line), $2); yyerrok; }
     | Specifier error SEMI          { $$ = newASTNode(AST_ExtDef, @$.first_line); addASTNode($$, 3, $1, newASTNode(AST_Error, @$.first_line), $3); yyerrok; }
@@ -69,7 +70,7 @@ Specifier : TYPE                    { $$ = newASTNode(AST_Specifier, @$.first_li
     | StructSpecifier               { $$ = newASTNode(AST_Specifier, @$.first_line); $$->subtype = TYPE_STRUCT; addASTNode($$, 1, $1); }
     ;
 
-StructSpecifier : STRUCT OptTag LC DefList RC   { $$ = newASTNode(AST_StructSpecifier, @$.first_line); $$->subtype = NEW_STRUCT; $3->subtype = NEW_STRUCT; addASTNode($$, 5, $1, $2, $3, $4, $5); }
+StructSpecifier : STRUCT OptTag LC DefList RC   { $$ = newASTNode(AST_StructSpecifier, @$.first_line); $$->subtype = NEW_STRUCT; addASTNode($$, 5, $1, $2, $3, $4, $5); }
     | STRUCT Tag                                { $$ = newASTNode(AST_StructSpecifier, @$.first_line); addASTNode($$, 2, $1, $2); }
     | STRUCT OptTag LC error RC                 { $$ = newASTNode(AST_StructSpecifier, @$.first_line); addASTNode($$, 5, $1, $2, $3, newASTNode(AST_Error, @$.first_line), $5); yyerrok; }
     ;
@@ -170,5 +171,5 @@ Args : Exp COMMA Args               { $$ = newASTNode(AST_Args, @$.first_line); 
 #include "lex.yy.c"
 
 void yyerror(char *msg) {
-  reportError('B', "%s", msg);
+  reportError("B", yylineno, "%s", msg);
 }

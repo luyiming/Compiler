@@ -24,10 +24,10 @@ enum ASTNodeType {
 #define TOKEN_SIZE 100
 
 typedef struct ASTNode_ *ASTNode;
+typedef struct Type_ *Type;
 enum ASTNodeSubtype;
 struct ASTNode_ {
     enum ASTNodeType type;
-    int subtype;    // for semantic parse, specify the production for derivation
     int lineno;
     ASTNode child, sibling;
     union {
@@ -35,6 +35,8 @@ struct ASTNode_ {
         double d;
         char c[TOKEN_SIZE];
     } val;
+    int subtype;    // for semantic parse, specify the production for derivation
+    Type expType;   // only for AST_Exp
 };
 
 ASTNode newASTNode(enum ASTNodeType type, int lineno);

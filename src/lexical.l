@@ -5,17 +5,13 @@
 #include "syntax.tab.h"
 #include "AST.h"
 #include "debug.h"
+#include "common.h"
 
 void debug(const char* type) {
 #ifdef LEXDEBUG
   printf("%3d %-8s %s\n", yylineno, type, yytext);
 #endif
 }
-int cnt_error = 0;
-#define reportError(type, format, ...) \
-  printf("Error type %c at Line %d: " format "\n", type, yylineno, ## __VA_ARGS__); \
-  cnt_error ++
-
 int str2i(const char* str) {
   int res;
   if (str[0] == '0') {
@@ -67,7 +63,7 @@ id      [_a-zA-Z][_a-zA-Z0-9]*
 "/*"            { debug("BCOMMENT"); BEGIN(COMMENT); }
 <COMMENT>"*/"   { BEGIN(INITIAL); }
 <COMMENT>.|\n   { }
-<COMMENT><<EOF>>    { reportError('A', "unterminated comment"); BEGIN(INITIAL); }
+<COMMENT><<EOF>>    { reportError("A", yylineno, "unterminated comment"); BEGIN(INITIAL); }
 "/"             { debug("DIV");      yylval = newASTNode(AST_DIV, yylloc.first_line);       return DIV; }
 "&&"            { debug("AND");      yylval = newASTNode(AST_AND, yylloc.first_line);       return AND; }
 "||"            { debug("OR");       yylval = newASTNode(AST_OR, yylloc.first_line);        return OR; }
@@ -89,6 +85,6 @@ id      [_a-zA-Z][_a-zA-Z0-9]*
 \r\n|\n         { yycolumn = 1; }
 {ws}+           { }
 
-.               { reportError('A', "mysterious character \'%s\'", yytext); }
+.               { reportError("A", yylineno, "mysterious character \'%s\'", yytext); }
 
 %%

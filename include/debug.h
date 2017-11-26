@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include <assert.h>
-#define panic() printf("[DEBUG]TODO\n");assert(0)
+#define panic(x) printf(x "\n");assert(0)
+#define unimplemented() panic("Need to implement")
 
 #endif

@@ -58,6 +58,7 @@ void semantic_parse(ASTNode ASTroot);
 Type checkExpType(ASTNode exp);
 int isLeftVal(ASTNode exp);
 int typeEqual(Type t1, Type t2);
+int structEqual(FieldList st1, FieldList st2);
 void checkStmtType(ASTNode stmt);
 void checkArgs(FieldList argList, ASTNode args);
 
@@ -69,5 +70,8 @@ enum ASTNodeSubtype {
     ARRAY_USE,      STRUCT_USE,     VAR_DEC,
     FUNC_DEC,       VOID_DEC,       
 };
+
+/* some constant */
+#define     UNCHECKED       ((void*)-1)
 
 #endif

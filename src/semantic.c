@@ -4,6 +4,7 @@
 #include "AST.h"
 #include "semantic.h"
 #include "debug.h"
+#include "common.h"
 
 #define NEST_DEPTH 20
 SymbolList id_symlist, type_symlist;
@@ -83,7 +84,7 @@ Type getType(ASTNode specifier) {
             type->u.basic = TYPE_FLOAT;
         }
         else {
-            printf("[DEBUG]Error TypeName: %s\n", typename);
+            panic("Unknowned basic type");
         }
     }
     return type;
@@ -102,7 +103,7 @@ Type newType(ASTNode structSpecifier) {
         strcpy(sym->name, optTag->child->val.c);
         sym->u.type = type;
         if (addTypeDef(sym) < 0) {
-            printf("Duplicate StructDef at Line %d\n", structSpecifier->lineno);
+            reportError("16", structSpecifier->lineno, "Duplicated name \"%s\"", sym->name);
         }
     }
     return type;
@@ -125,7 +126,7 @@ FieldList buildFields(FieldList structure, ASTNode defList) {
         }
         else {
             if (addField(structure, field) < 0) {
-                printf("DecMemVar Error at Line %d VarName: %s\n", dec->lineno, field->name);
+                reportError("15", dec->lineno, "Redefined field \"%s\"", field->name);
             }
         }
         if (decList->subtype == UNFINISHED) {        
@@ -170,7 +171,7 @@ void decExtVar(Type type, ASTNode extDecList) {
     ASTNode varDec = extDecList->child;
     Symbol sym = getSym4VarDec(type, varDec);
     if (addIdDef(sym) < 0) {
-        printf("DecExtVar Error at Line %d, VarName: %s\n", extDecList->lineno, sym->name);
+        reportError("3", extDecList->lineno, "Redefined variable \"%s\"", sym->name);
     }
     if (extDecList->subtype == UNFINISHED) {
         decExtVar(type, varDec->sibling->sibling);
@@ -181,7 +182,7 @@ void decVar(Type type, ASTNode decList) {
     ASTNode dec = decList->child;
     Symbol sym = getSym4VarDec(type, dec->child);
     if (addIdDef(sym) < 0) {
-        printf("DecVar Error at Line %d, VarName: %s\n", decList->lineno, sym->name);
+        reportError("3", decList->lineno, "Redefined variable \"%s\"", sym->name);
     }
     if (decList->subtype == UNFINISHED) {
         decVar(type, dec->sibling->sibling);
@@ -191,7 +192,7 @@ void decVar(Type type, ASTNode decList) {
 void decFunc(Type type, ASTNode funDec) {
     Symbol sym = getSym4FuncDec(type, funDec);
     if (addIdDef(sym) < 0) {
-        printf("DecFunc Error at Line %d, FuncName: %s\n", funDec->lineno, sym->name);
+        reportError("4", funDec->lineno, "Redefined function \"%s\"", sym->name);
     }
 }
 
@@ -240,10 +241,10 @@ FieldList buildArgs(FieldList argList, ASTNode varList) {
         argList->tail = NULL;
     }
     else if (addField(argList, field) < 0) {
-        printf("DecParam Error at Line %d paramName: %s\n", varList->lineno, field->name);
+        reportError("3", varList->lineno, "Redefined variable \"%s\"", sym->name);
     }
     if (addIdDef(sym) < 0) {
-        printf("DecVar Error at Line %d varName: %s\n", varList->lineno, sym->name);
+        reportError("3", varList->lineno, "Redefined variable \"%s\"", sym->name);
     }
     if (varList->subtype == UNFINISHED) {
         buildArgs(argList, paramDec->sibling->sibling);
@@ -254,45 +255,41 @@ FieldList buildArgs(FieldList argList, ASTNode varList) {
 void semantic_parse(ASTNode parent) {
     if (parent == NULL) return;
     if (parent->type > AST_Program && parent->child == NULL) return;
-    // child first
+    // before
+    switch (parent->type) {
+        case AST_ExtDef: {
+            Type type = getType(parent->child);
+            if (type == NULL) {
+                reportError("17", parent->lineno, "Undefined structure \"%s\"", parent->child->child->child->sibling->child->val.c);
+            }
+            else if (parent->subtype == VAR_DEC) {
+                decExtVar(type, parent->child->sibling);
+            }
+            else if (parent->subtype == FUNC_DEC) {
+                decFunc(type, parent->child->sibling);
+            }
+        }   break;
+        case AST_StructSpecifier: {
+            if (parent->subtype == NEW_STRUCT) {
+                struct_env_dep ++;
+            }
+        }   break;
+    }
+    
     for (ASTNode p = parent->child; p != NULL; p = p->sibling) {
         semantic_parse(p);
     }
 
     // /**/printf("sem_parse:%s\n", ASTNodeTypeName[parent->type]);
-    Symbol func_sym = NULL;
     switch (parent->type) {
-        case AST_ExtDef: {
-            Type type = getType(parent->child);
-            if (type == NULL) {
-                printf("Undefined Type at Line %d\n", parent->lineno);
-            }
-            else if (parent->subtype == VAR_DEC) {
-                decExtVar(type, parent->child->sibling);
-            }
-        }   break;
-        case AST_Specifier: {
-            Type type = getType(parent);
-            if (type == NULL) {
-                printf("Undefined Type at Line %d\n", parent->lineno);
-            }
-            else if (parent->subtype == FUNC_DEC) {
-                decFunc(type, parent->sibling);
-            }
-        }   break;
         case AST_Def: {
             if (struct_env_dep > 0) break;
             Type type = getType(parent->child);
             if (type == NULL) {
-                printf("Undefined Type at Line %d\n", parent->lineno);
+                reportError("17", parent->lineno, "Undefined structure \"%s\"", parent->child->child->child->sibling->child->val.c);
             }
             else {
                 decVar(type, parent->child->sibling);
-            }
-        }   break;
-        case AST_LC: {
-            if (parent->subtype == NEW_STRUCT) {
-                struct_env_dep ++;
             }
         }   break;
         case AST_StructSpecifier: {
@@ -303,16 +300,16 @@ void semantic_parse(ASTNode parent) {
         case AST_ID: {
             if (parent->subtype == VAR_USE) {
                 if (getIdDef(parent->val.c) == NULL) {
-                    printf("Undefined Var: %s at Line %d\n", parent->val.c, parent-> lineno);
+                    reportError("1", parent->lineno, "Undefined variable \"%s\"", parent->val.c);
                 }
             }
             else if(parent->subtype == FUNC_USE) {
-                func_sym = getIdDef(parent->val.c);
+                Symbol func_sym = getIdDef(parent->val.c);
                 if (func_sym == NULL) {
-                    printf("Undefined Id: %s at Line %d\n", parent->val.c, parent-> lineno);
+                    reportError("2", parent->lineno, "Undefined function \"%s\"", parent->val.c);
                 }
                 else if (func_sym->kind != FUNC_DEF) {
-                    printf("Id is not a Func: %s at Line %d\n", parent->val.c, parent-> lineno);
+                    reportError("11", parent->lineno, "\"%s\" is not a function", parent->val.c);
                 }
                 else {
                     checkArgs(func_sym->u.func->argList, parent->sibling->sibling);
@@ -327,6 +324,7 @@ void semantic_parse(ASTNode parent) {
 }
 
 Type checkExpType(ASTNode exp) { // TODO: duplicate check and report error
+    if (exp->expType != UNCHECKED) return exp->expType;
     Type type = NULL;
     ASTNode first = exp->child;
     switch (first->type) {
@@ -334,20 +332,20 @@ Type checkExpType(ASTNode exp) { // TODO: duplicate check and report error
             type = checkExpType(first);
             if (first->sibling->type == AST_ASSIGNOP) {
                 if (isLeftVal(first) == 0) {
-                    printf("Left Value Error at Line %d\n", exp->lineno);
+                    reportError("6", exp->lineno, "The left-hand side of an assignment must be a variable");
                 }
             }
             if (first->subtype == ARRAY_USE) {
                 type = checkExpType(first);
                 if (type != NULL) {
                     if (type->kind != ARRAY) {
-                        printf("Not Array Type at Line %d\n", exp->lineno);
+                        reportError("10", exp->lineno, "Variable is not an array");
                         type = NULL;
                     }
                     else {
                         Type idx_type = checkExpType(first->sibling->sibling);
                         if (idx_type->kind != BASIC || idx_type->u.basic != TYPE_INT) {
-                            printf("Index is Not a INT at Line %d\n", first->lineno);
+                            reportError("12", first->lineno, "Index is not an integer");
                         }
                         type = type->u.array.elem;
                     }
@@ -357,13 +355,13 @@ Type checkExpType(ASTNode exp) { // TODO: duplicate check and report error
                 Type fst_type = checkExpType(first);
                 if (fst_type != NULL) {
                     if (fst_type->kind != STRUCTURE) {
-                        printf("Not Struct Type at Line %d\n", exp->lineno);
+                        reportError("13", exp->lineno, "Illegal use of \".\"");
                         type = NULL;
                     }
                     else {
                         Field field = getField(fst_type->u.structure, first->sibling->sibling->val.c);
                         if (field == NULL) {
-                            printf("Non-exist field at Line %d\n", first->lineno);
+                            reportError("14", first->lineno, "Non-existent field \"%s\"", first->sibling->sibling->val.c);
                             type = NULL;
                         }
                         else {
@@ -373,14 +371,14 @@ Type checkExpType(ASTNode exp) { // TODO: duplicate check and report error
                 }
             }
             else if (typeEqual(type, checkExpType(first->sibling->sibling)) == 0) {
-                printf("Type mismatched at Line %d\n", exp->lineno);
+                reportError("7", exp->lineno, "Type mismatched for operands");
                 type = NULL;
             }
         }   break;
         case AST_ID: {
             Symbol sym = getIdDef(first->val.c);
             if (sym == NULL) {
-                printf("Undefined Id at Line %d\n", first->lineno);
+                // printf("Undefined Id at Line %d\n", first->lineno);
                 type = NULL;
             }
             else if (first->subtype == FUNC_USE) {
@@ -403,6 +401,7 @@ Type checkExpType(ASTNode exp) { // TODO: duplicate check and report error
 
         // TODO
     }
+    exp->expType = type;
     return type;
 }
 
@@ -430,17 +429,23 @@ int isLeftVal(ASTNode exp) {
 int typeEqual(Type t1, Type t2) {
     if (t1 == NULL || t2 == NULL) return 0;
     if (t1->kind != t2->kind) return 0;
-    if (t1->kind == BASIC) {
-        return t1->u.basic == t2->u.basic;
-    }
-    return 0;
+    if (t1->kind == BASIC) return t1->u.basic == t2->u.basic;
+    if (t1->kind == STRUCTURE) return structEqual(t1->u.structure, t2->u.structure);
+    unimplemented();
+}
+
+int structEqual(FieldList st1, FieldList st2) {
+    if (st1 == NULL && st2 == NULL) return 1;
+    if (st1 == NULL || st2 == NULL) return 0;
+    if (typeEqual(st1->type, st2->type) == 0) return 0;
+    return structEqual(st1->tail, st2->tail);
 }
 
 void checkStmtType(ASTNode stmt) {
     if (stmt->child->type == AST_RETURN) {
         Type retType = cur_func->u.func->retType;
         if (typeEqual(retType, checkExpType(stmt->child->sibling)) == 0) {
-            printf("Type mismatched for RETURN at Line %d\n", stmt->lineno);
+            reportError("8", stmt->lineno, "Type mismatched for return");
         }
     }
 }
@@ -470,6 +475,6 @@ void checkArgs(FieldList argList, ASTNode args) {
         }
     }
     if (matched == 0) {
-        printf("Function Args dismatched at Line %d\n", args->lineno);
+        reportError("9", args->lineno, "Function call is not applicable");
     }
 }
