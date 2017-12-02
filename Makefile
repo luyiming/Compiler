@@ -21,6 +21,12 @@ test-gcc:
 testall: parser
 	@bash test.sh $(TESTCASE_ALL)
 
+test1: parser
+	@python test.py test/syntax_test
+
+test2: parser
+	@python test.py test/semantic_test
+
 clean:
 	@$(RM) -r out
 

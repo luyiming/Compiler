@@ -115,7 +115,7 @@ FieldList buildFields(FieldList structure, ASTNode defList) {
                 reportError("15", dec->lineno, "Redefined field \"%s\"", field->name);
             }
         }
-        if (decList->subtype == UNFINISHED) {        
+        if (decList->subtype == UNFINISHED) {
             decList = dec->sibling->sibling;
         }
         else break;
@@ -200,7 +200,7 @@ Symbol getSym4VarDec(Type type, ASTNode varDec) {
 Symbol getSym4FuncDec(Type type, ASTNode funDec) {
     Symbol sym = (Symbol)malloc(sizeof(struct SymbolList_));
     sym->kind = FUNC_DEF;
-    strcpy(sym->name, funDec->child->val.c); 
+    strcpy(sym->name, funDec->child->val.c);
     sym->u.func = (Func)malloc(sizeof(struct Func_));
     sym->u.func->retType = type;
     sym->u.func->argList = NULL;
