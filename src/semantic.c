@@ -6,17 +6,28 @@
 #include "debug.h"
 #include "common.h"
 
-#define NEST_DEPTH 20
+#define MAX_NEST_DEPTH 20
+SymbolList symbolTabel[MAX_NEST_DEPTH];
+int currentNestDepth = 0;
+
 SymbolList id_symlist, type_symlist;
 Symbol cur_func = NULL;
 int struct_env_dep = 0;
 
 Symbol getIdDef(char *name) {
-    Symbol cur_sym = id_symlist;
-    while (cur_sym != NULL) {
-        if (strcmp(cur_sym->name, name) == 0) return cur_sym;
-        cur_sym = cur_sym->tail;
+    for (int depth = currentNestDepth; depth >= 0; depth--) {
+        SymbolList symbolList = symbolTabel[depth];
+        while (symbolList != NULL) {
+            if (strcmp(symbolList->name, name) == 0)
+                return symbolList;
+            symbolList = symbolList->tail;
+        }
     }
+    // Symbol cur_sym = id_symlist;
+    // while (cur_sym != NULL) {
+    //     if (strcmp(cur_sym->name, name) == 0) return cur_sym;
+    //     cur_sym = cur_sym->tail;
+    // }
     return NULL;
 }
 
@@ -73,8 +84,10 @@ int addIdDef(Symbol sym) {
             return -1;
         }
     }
-    sym->tail = id_symlist;
-    id_symlist = sym;
+    sym->tail = symbolTabel[currentNestDepth];
+    symbolTabel[currentNestDepth] = sym;
+    // sym->tail = id_symlist;
+    // id_symlist = sym;
     return 0;
 }
 
@@ -308,6 +321,10 @@ void semantic_parse(ASTNode parent) {
                 struct_env_dep ++;
             }
         }   break;
+        case AST_CompSt: {
+            currentNestDepth++;
+            symbolTabel[currentNestDepth] = NULL;
+        }   break;
     }
     // go down
     for (ASTNode p = parent->child; p != NULL; p = p->sibling) {
@@ -352,6 +369,9 @@ void semantic_parse(ASTNode parent) {
         }   break;
         case AST_Exp:   checkExpType(parent); break;
         case AST_Stmt:  checkStmtType(parent);  break;
+        case AST_CompSt: {
+            currentNestDepth--;
+        }   break;
     }
     if (parent->type == AST_Program)
         checkUndefinedFunction();
@@ -524,7 +544,8 @@ void checkArgs(FieldList argList, ASTNode args) {
 }
 
 void checkUndefinedFunction() {
-    Symbol sym = id_symlist;
+    // Symbol sym = id_symlist;
+    Symbol sym = symbolTabel[currentNestDepth];
     while (sym != NULL) {
         if (sym->kind == FUNC_DEF && sym->u.func->hasDefinition == 0) {
             reportError("18", sym->u.func->lineno, "Undefined Function");
