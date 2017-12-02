@@ -74,7 +74,7 @@ StructSpecifier : STRUCT OptTag LC DefList RC   { $$ = newASTNode(AST_StructSpec
     ;
 
 OptTag : ID                         { $$ = newASTNode(AST_OptTag, @$.first_line); addASTNode($$, 1, $1); }
-    | /* empty */                   { $$ = newASTNode(AST_OptTag, @$.first_line); $$->subtype == EMPTY; }
+    | /* empty */                   { $$ = newASTNode(AST_OptTag, @$.first_line); $$->subtype = EMPTY; }
     ;
 
 Tag : ID                            { $$ = newASTNode(AST_Tag, @$.first_line); addASTNode($$, 1, $1); }
