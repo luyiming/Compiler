@@ -25,6 +25,8 @@ typedef struct Func_* Func;
 struct Func_ {
     Type retType;
     FieldList argList;
+    int hasDefinition;
+    int lineno;
 };
 
 typedef struct SymbolList_* SymbolList, *Symbol;
@@ -52,7 +54,7 @@ void decVar(Type type, ASTNode decList);
 void decFunc(Type type, ASTNode funDec);
 Symbol getSym4VarDec(Type type, ASTNode dec);
 Symbol getSym4FuncDec(Type type, ASTNode funDec);
-FieldList buildArgs(FieldList argList, ASTNode varList);
+FieldList buildArgs(FieldList argList, ASTNode varList, int addToSymbolTabel);
 
 void semantic_parse(ASTNode ASTroot);
 Type checkExpType(ASTNode exp);
@@ -61,6 +63,8 @@ int typeEqual(Type t1, Type t2);
 int structEqual(FieldList st1, FieldList st2);
 void checkStmtType(ASTNode stmt);
 void checkArgs(FieldList argList, ASTNode args);
+int funcEqual(Symbol func1, Symbol func2);
+void checkUndefinedFunction();
 
 /* ASTNode.subtype enum */
 enum ASTNodeSubtype {
@@ -69,7 +73,7 @@ enum ASTNodeSubtype {
     VAR_USE,        FUNC_USE,       VOID_ARG,
     ARRAY_USE,      STRUCT_USE,     VAR_DEC,
     FUNC_DEC,       VOID_DEC,       INITIALIZE,
-    
+
 };
 
 /* some constant */

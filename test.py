@@ -2,11 +2,12 @@ import sys
 import re
 import os
 import subprocess
+import itertools
 
 def compare(true_file, output_lines):
     PATTERN = re.compile(r'Error type (.*) at Line (\d+):.*')
     with open(true_file) as f:
-        for lineno, (line1, line2) in enumerate(zip(f, output_lines)):
+        for lineno, (line1, line2) in enumerate(itertools.zip_longest(f, output_lines, fillvalue="")):
             m1, m2 = re.match(PATTERN, line1), re.match(PATTERN, line2)
             if m1 is not None and m2 is not None:
                 if m1.group(1) != m2.group(1) or m1.group(2) != m2.group(2):

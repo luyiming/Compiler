@@ -50,6 +50,7 @@ ExtDefList : ExtDef ExtDefList      { $$ = newASTNode(AST_ExtDefList, @$.first_l
 ExtDef : Specifier ExtDecList SEMI  { $$ = newASTNode(AST_ExtDef, @$.first_line); $$->subtype = VAR_DEC; addASTNode($$, 3, $1, $2, $3); }
     | Specifier SEMI                { $$ = newASTNode(AST_ExtDef, @$.first_line); $$->subtype = VOID_DEC; addASTNode($$, 2, $1, $2); }
     | Specifier FunDec CompSt       { $$ = newASTNode(AST_ExtDef, @$.first_line); $$->subtype = FUNC_DEC; addASTNode($$, 3, $1, $2, $3); }
+    | Specifier FunDec SEMI         { $$ = newASTNode(AST_ExtDef, @$.first_line); $$->subtype = FUNC_DEC; addASTNode($$, 3, $1, $2, $3); }
     | error SEMI                    { $$ = newASTNode(AST_ExtDef, @$.first_line); addASTNode($$, 2, newASTNode(AST_Error, @$.first_line), $2); yyerrok; }
     | Specifier error SEMI          { $$ = newASTNode(AST_ExtDef, @$.first_line); addASTNode($$, 3, $1, newASTNode(AST_Error, @$.first_line), $3); yyerrok; }
     | Specifier error               { $$ = newASTNode(AST_ExtDef, @$.first_line); addASTNode($$, 2, $1, newASTNode(AST_Error, @$.first_line)); yyerrok; }

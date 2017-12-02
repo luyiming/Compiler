@@ -29,13 +29,52 @@ Symbol getTypeDef(char *name) {
     return NULL;
 }
 
+// 检查两个函数签名是否一样，签名包括返回类型和参数类型
+// return:
+//   1  - true
+//   0  - false
+int funcEqual(Symbol func1, Symbol func2) {
+    if (!typeEqual(func1->u.func->retType, func2->u.func->retType))
+        return 0;
+    Field arg1 = func1->u.func->argList;
+    Field arg2 = func2->u.func->argList;
+    while (arg1 != NULL && arg2 != NULL) {
+        if (!typeEqual(arg1->type, arg2->type))
+            return 0;
+        arg1 = arg1->tail;
+        arg2 = arg2->tail;
+    }
+    if (arg1 != NULL || arg2 != NULL) {
+        return -1;
+    }
+    return 1;
+}
+
 int addIdDef(Symbol sym) {
-    if (getIdDef(sym->name) != NULL) return -1;
-    sym->tail = id_symlist;
-    id_symlist = sym;
     if (sym->kind == FUNC_DEF) {
         cur_func = sym;
     }
+    Symbol oldsym = getIdDef(sym->name);
+    if (oldsym != NULL) {
+        if (oldsym->kind == FUNC_DEF && sym->kind == FUNC_DEF) {
+            if (oldsym->u.func->hasDefinition && sym->u.func->hasDefinition) {
+                // 函数重定义
+                return -1;
+            }
+            if (funcEqual(oldsym, sym) == 0) {
+                // 函数声明/定义签名不一致
+                return -2;
+            }
+            if (sym->u.func->hasDefinition)
+                oldsym->u.func->hasDefinition = 1;
+            return 0;
+        }
+        else {
+            return -1;
+        }
+    }
+    sym->tail = id_symlist;
+    id_symlist = sym;
     return 0;
 }
 
@@ -172,8 +211,12 @@ void decVar(Type type, ASTNode decList) {
 
 void decFunc(Type type, ASTNode funDec) {
     Symbol sym = getSym4FuncDec(type, funDec);
-    if (addIdDef(sym) < 0) {
+    int ret = addIdDef(sym);
+    if (ret == -1) {
         reportError("4", funDec->lineno, "Redefined function \"%s\"", sym->name);
+    }
+    else if (ret == -2) {
+        reportError("19", funDec->lineno, "Function \"%s\" signiture conflict", sym->name);
     }
 }
 
@@ -204,13 +247,21 @@ Symbol getSym4FuncDec(Type type, ASTNode funDec) {
     sym->u.func = (Func)malloc(sizeof(struct Func_));
     sym->u.func->retType = type;
     sym->u.func->argList = NULL;
+    sym->u.func->lineno = funDec->lineno;
+    int addToSymbolTabel = 1;
+    if (funDec->sibling->type == AST_SEMI) { // 函数声明
+        sym->u.func->hasDefinition = 0;
+        addToSymbolTabel = 0;
+    } else { // 函数定义
+        sym->u.func->hasDefinition = 1;
+    }
     if (funDec->subtype != VOID_ARG) {
-        sym->u.func->argList = buildArgs(NULL, funDec->child->sibling->sibling);
+        sym->u.func->argList = buildArgs(NULL, funDec->child->sibling->sibling, addToSymbolTabel);
     }
     return sym;
 }
 
-FieldList buildArgs(FieldList argList, ASTNode varList) {
+FieldList buildArgs(FieldList argList, ASTNode varList, int addToSymbolTabel) {
     ASTNode paramDec = varList->child;
     Type type = getType(paramDec->child);
     Symbol sym = getSym4VarDec(type, paramDec->child->sibling);
@@ -224,11 +275,13 @@ FieldList buildArgs(FieldList argList, ASTNode varList) {
     else if (addField(argList, field) < 0) {
         reportError("3", varList->lineno, "Redefined variable \"%s\"", sym->name);
     }
-    if (addIdDef(sym) < 0) {
-        reportError("3", varList->lineno, "Redefined variable \"%s\"", sym->name);
+    if (addToSymbolTabel == 1) {
+        if (addIdDef(sym) < 0) {
+            reportError("3", varList->lineno, "Redefined variable \"%s\"", sym->name);
+        }
     }
     if (varList->subtype == UNFINISHED) {
-        buildArgs(argList, paramDec->sibling->sibling);
+        buildArgs(argList, paramDec->sibling->sibling, addToSymbolTabel);
     }
     return argList;
 }
@@ -300,6 +353,8 @@ void semantic_parse(ASTNode parent) {
         case AST_Exp:   checkExpType(parent); break;
         case AST_Stmt:  checkStmtType(parent);  break;
     }
+    if (parent->type == AST_Program)
+        checkUndefinedFunction();
 }
 
 Type checkExpType(ASTNode exp) {
@@ -465,5 +520,15 @@ void checkArgs(FieldList argList, ASTNode args) {
     }
     if (matched == 0) {
         reportError("9", args->lineno, "Function call is not applicable");
+    }
+}
+
+void checkUndefinedFunction() {
+    Symbol sym = id_symlist;
+    while (sym != NULL) {
+        if (sym->kind == FUNC_DEF && sym->u.func->hasDefinition == 0) {
+            reportError("18", sym->u.func->lineno, "Undefined Function");
+        }
+        sym = sym->tail;
     }
 }
