@@ -1,6 +1,6 @@
 CC := gcc
-CFLAGS := -lfl -ly -I./include
-CSOURCE := src/parser.c src/AST.c src/semantic.c src/common.c
+CFLAGS := -lfl -ly -Wall -I./include
+CSOURCE := src/parser.c src/AST.c src/semantic.c src/common.c src/rb_tree.c
 BFLAGS := -d -v --locations
 PARSER := out/parser
 TESTCASE_ALL = $(wildcard test/pretest2/*.*)

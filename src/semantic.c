@@ -5,39 +5,41 @@
 #include "semantic.h"
 #include "debug.h"
 #include "common.h"
+#include "rb_tree.h"
 
 #define MAX_NEST_DEPTH 20
-SymbolList symbolTabel[MAX_NEST_DEPTH];
+struct rb_tree *symbolTable[MAX_NEST_DEPTH];
 int currentNestDepth = 0;
-
-SymbolList id_symlist, type_symlist;
+struct rb_tree *typeTable = NULL;
 Symbol cur_func = NULL;
 int struct_env_dep = 0;
 
+int symbol_cmp(struct rb_tree *self, struct rb_node *node_a,
+               struct rb_node *node_b) {
+    Symbol a = (Symbol)node_a->value;
+    Symbol b = (Symbol)node_b->value;
+    return strcmp(a->name, b->name);
+}
+
+void initSymbolTabel() {
+    symbolTable[0] = rb_tree_create(symbol_cmp);
+    typeTable = rb_tree_create(symbol_cmp);
+}
+
 Symbol getIdDef(char *name) {
     for (int depth = currentNestDepth; depth >= 0; depth--) {
-        SymbolList symbolList = symbolTabel[depth];
-        while (symbolList != NULL) {
-            if (strcmp(symbolList->name, name) == 0)
-                return symbolList;
-            symbolList = symbolList->tail;
-        }
+        Symbol tmp = &(struct SymbolList_){.name = {'\n'}};
+        strcpy(tmp->name, name);
+        Symbol sym = rb_tree_find(symbolTable[depth], tmp);
+        if (sym) return sym;
     }
-    // Symbol cur_sym = id_symlist;
-    // while (cur_sym != NULL) {
-    //     if (strcmp(cur_sym->name, name) == 0) return cur_sym;
-    //     cur_sym = cur_sym->tail;
-    // }
     return NULL;
 }
 
 Symbol getTypeDef(char *name) {
-    Symbol cur_sym = type_symlist;
-    while (cur_sym != NULL) {
-        if (strcmp(cur_sym->name, name) == 0) return cur_sym;
-        cur_sym = cur_sym->tail;
-    }
-    return NULL;
+    Symbol sym = &(struct SymbolList_){.name = {'\n'}};
+    strcpy(sym->name, name);
+    return rb_tree_find(typeTable, sym);
 }
 
 // 检查两个函数签名是否一样，签名包括返回类型和参数类型
@@ -84,17 +86,13 @@ int addIdDef(Symbol sym) {
             return -1;
         }
     }
-    sym->tail = symbolTabel[currentNestDepth];
-    symbolTabel[currentNestDepth] = sym;
-    // sym->tail = id_symlist;
-    // id_symlist = sym;
+    rb_tree_insert(symbolTable[currentNestDepth], sym);
     return 0;
 }
 
 int addTypeDef(Symbol sym) {
     if (getTypeDef(sym->name) != NULL) return -1;
-    sym->tail = type_symlist;
-    type_symlist = sym;
+    rb_tree_insert(typeTable, sym);
     return 0;
 }
 
@@ -301,6 +299,9 @@ FieldList buildArgs(FieldList argList, ASTNode varList, int addToSymbolTabel) {
 
 void semantic_parse(ASTNode parent) {
     if (parent == NULL) return;
+    if (parent->type == AST_Program) {
+        initSymbolTabel();
+    }
     if (parent->type > AST_Program && parent->child == NULL) return;
     // before
     switch (parent->type) {
@@ -323,8 +324,11 @@ void semantic_parse(ASTNode parent) {
         }   break;
         case AST_CompSt: {
             currentNestDepth++;
-            symbolTabel[currentNestDepth] = NULL;
+            // symbolTable[currentNestDepth] = NULL;
+            symbolTable[currentNestDepth] = rb_tree_create(symbol_cmp);
         }   break;
+        default:
+            break;
     }
     // go down
     for (ASTNode p = parent->child; p != NULL; p = p->sibling) {
@@ -370,8 +374,11 @@ void semantic_parse(ASTNode parent) {
         case AST_Exp:   checkExpType(parent); break;
         case AST_Stmt:  checkStmtType(parent);  break;
         case AST_CompSt: {
+            rb_tree_dealloc(symbolTable[currentNestDepth], NULL);
             currentNestDepth--;
         }   break;
+        default:
+            break;
     }
     if (parent->type == AST_Program)
         checkUndefinedFunction();
@@ -544,12 +551,14 @@ void checkArgs(FieldList argList, ASTNode args) {
 }
 
 void checkUndefinedFunction() {
-    // Symbol sym = id_symlist;
-    Symbol sym = symbolTabel[currentNestDepth];
-    while (sym != NULL) {
-        if (sym->kind == FUNC_DEF && sym->u.func->hasDefinition == 0) {
-            reportError("18", sym->u.func->lineno, "Undefined Function");
+    struct rb_iter *iter = rb_iter_create();
+    if (iter) {
+        for (Symbol sym = rb_iter_first(iter, symbolTable[currentNestDepth]);
+             sym != NULL; sym = rb_iter_next(iter)) {
+            if (sym->kind == FUNC_DEF && sym->u.func->hasDefinition == 0) {
+                reportError("18", sym->u.func->lineno, "Undefined Function");
+            }
         }
-        sym = sym->tail;
+        rb_iter_dealloc(iter);
     }
 }
