@@ -18,7 +18,7 @@ test-gcc:
 	gcc -x c $(TESTCASE) > /dev/null
 
 testall: parser
-	@python test.py $(PARSER) test/semantic_test
+	@python3 test.py $(PARSER) test/semantic_test
 
 clean:
 	@$(RM) -r out
