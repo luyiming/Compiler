@@ -1,0 +1,23 @@
+int main() {
+    struct St {
+        int x;
+    } sa, sb;
+    int ia, ib;
+    float fa, fb;
+    while (fa) {
+        int xerr = !(fa * fb);
+        int xok = !(ia / ib);
+        int yerr = -sa;
+        float yok = -(fa + fb);
+        if (sa) {
+            int xerr = sa > sb;
+            int xok = fa < fb;
+            int yerr = fa || fb;
+            int yok = ia && ib;
+        }
+        else {
+            int xerr = sa - sb;
+            float xok = fa - fb;
+        }
+    }
+}
