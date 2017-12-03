@@ -10,7 +10,7 @@
 #define MAX_NEST_DEPTH 20
 struct rb_tree *symbolTable[MAX_NEST_DEPTH];
 struct rb_tree *typeTable[MAX_NEST_DEPTH];
-int currentNestDepth = 0;
+int currentNestedDepth = 0;
 Symbol cur_func = NULL;
 int struct_env_dep = 0;
 
@@ -31,9 +31,9 @@ Symbol lookupSymbol(char *name, bool checkUpperScope) {
     strcpy(tmp->name, name);
 
     if (checkUpperScope == false)
-        return rb_tree_find(symbolTable[currentNestDepth], tmp);
+        return rb_tree_find(symbolTable[currentNestedDepth], tmp);
 
-    for (int depth = currentNestDepth; depth >= 0; depth--) {
+    for (int depth = currentNestedDepth; depth >= 0; depth--) {
         Symbol sym = rb_tree_find(symbolTable[depth], tmp);
         if (sym) return sym;
     }
@@ -45,9 +45,9 @@ Symbol lookupType(char *name, bool checkUpperScope) {
     strcpy(tmp->name, name);
 
     if (checkUpperScope == false)
-        return rb_tree_find(typeTable[currentNestDepth], tmp);
+        return rb_tree_find(typeTable[currentNestedDepth], tmp);
 
-    for (int depth = currentNestDepth; depth >= 0; depth--) {
+    for (int depth = currentNestedDepth; depth >= 0; depth--) {
         Symbol sym = rb_tree_find(typeTable[depth], tmp);
         if (sym) return sym;
     }
@@ -58,14 +58,14 @@ int insertSymbol(Symbol sym) {
     Symbol oldsym;
     if (sym->kind == FUNC_DEF) {
         cur_func = sym;
-        assert(currentNestDepth == 1);
+        assert(currentNestedDepth == 1);
         // TODO: remove this hack
         // 函数符号应该在最外层作用域，但是我们在进入 FunDec 的时候已经进入了内层作用域，
         // 此时添加函数符号仍然应该添加到外层，并且查找函数的时候也应该从最外层查找
         // 参见 20-4.txt 测试用例
-        currentNestDepth = 0;
+        currentNestedDepth = 0;
         oldsym = lookupSymbol(sym->name, false);
-        currentNestDepth = 1;
+        currentNestedDepth = 1;
     } else {
         oldsym = lookupSymbol(sym->name, false);
     }
@@ -90,14 +90,14 @@ int insertSymbol(Symbol sym) {
     if (sym->kind == FUNC_DEF) {
         rb_tree_insert(symbolTable[0], sym);
     } else {
-        rb_tree_insert(symbolTable[currentNestDepth], sym);
+        rb_tree_insert(symbolTable[currentNestedDepth], sym);
     }
     return 0;
 }
 
 int insertType(Symbol sym) {
     if (lookupType(sym->name, false) != NULL) return -1;
-    rb_tree_insert(typeTable[currentNestDepth], sym);
+    rb_tree_insert(typeTable[currentNestedDepth], sym);
     return 0;
 }
 
@@ -626,7 +626,8 @@ bool funcSignitureEqual(Symbol func1, Symbol func2) {
 void checkUndefinedFunc() {
     struct rb_iter *iter = rb_iter_create();
     if (iter) {
-        for (Symbol sym = rb_iter_first(iter, symbolTable[currentNestDepth]);
+        assert(currentNestedDepth == 0);
+        for (Symbol sym = rb_iter_first(iter, symbolTable[currentNestedDepth]);
              sym != NULL; sym = rb_iter_next(iter)) {
             if (sym->kind == FUNC_DEF && sym->u.func->definition == NULL) {
                 reportError("18", sym->u.func->lineno, "Undefined Function");
@@ -637,13 +638,13 @@ void checkUndefinedFunc() {
 }
 
 void enterScope() {
-    currentNestDepth++;
-    symbolTable[currentNestDepth] = rb_tree_create(symbol_cmp);
-    typeTable[currentNestDepth] = rb_tree_create(symbol_cmp);
+    currentNestedDepth++;
+    symbolTable[currentNestedDepth] = rb_tree_create(symbol_cmp);
+    typeTable[currentNestedDepth] = rb_tree_create(symbol_cmp);
 }
 
 void leaveScope() {
-    rb_tree_dealloc(symbolTable[currentNestDepth], NULL);
-    rb_tree_dealloc(typeTable[currentNestDepth], NULL);
-    currentNestDepth--;
+    rb_tree_dealloc(symbolTable[currentNestedDepth], NULL);
+    rb_tree_dealloc(typeTable[currentNestedDepth], NULL);
+    currentNestedDepth--;
 }
