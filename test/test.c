@@ -1,14 +1,13 @@
-#include <stdio.h>
+struct A {
+  int a;
+  int b[10];
+} x;
+
+struct B {
+    int a;
+    int b[10];
+} y;
+
 int main() {
-    struct A{
-        int d;
-    };
-    int d = 1;
-    if (d == 1) {
-      struct A {
-        int d;
-      };
-      struct A a;
-      printf("%d\n", a.d);
-    }
+  x=y;
 }

@@ -23,10 +23,11 @@ def compare(true_file, output_lines):
     print('pass {}'.format(true_file))
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print('Usage: test.py directory')
+    if len(sys.argv) != 3:
+        print('Usage: test.py path_to_bin directory')
         sys.exit()
-    directory = sys.argv[1]
+    parser = sys.argv[1]
+    directory = sys.argv[2]
     for filename in os.listdir(directory):
         src_file = os.path.join(directory, filename)
         if not filename.endswith(".true") and os.path.isfile(src_file):
@@ -34,6 +35,6 @@ if __name__ == '__main__':
             if not os.path.exists(true_file):
                 print('missing true file for ' + src_file)
             else:
-                output_lines = subprocess.Popen('out/parser ' + src_file, shell=True, stdout=subprocess.PIPE).stdout.readlines()
+                output_lines = subprocess.Popen('{} {}'.format(parser, src_file), shell=True, stdout=subprocess.PIPE).stdout.readlines()
                 output_lines = [line.decode('utf-8') for line in output_lines]
                 compare(true_file, output_lines)

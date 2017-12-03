@@ -1,9 +1,8 @@
 CC := gcc
-CFLAGS := -lfl -ly -Wall -I./include
+CFLAGS := -lfl -ly -I./include
 CSOURCE := src/parser.c src/AST.c src/semantic.c src/common.c src/rb_tree.c
 BFLAGS := -d -v --locations
 PARSER := out/parser
-TESTCASE_ALL = $(wildcard test/pretest2/*.*)
 
 parser: src/syntax.y src/lexical.l src/parser.c src/AST.c
 	@mkdir -p out
@@ -19,13 +18,7 @@ test-gcc:
 	gcc -x c $(TESTCASE) > /dev/null
 
 testall: parser
-	@bash test.sh $(TESTCASE_ALL)
-
-test1: parser
-	@python test.py test/syntax_test
-
-test2: parser
-	@python test.py test/semantic_test
+	@python test.py $(PARSER) test/semantic_test
 
 clean:
 	@$(RM) -r out
