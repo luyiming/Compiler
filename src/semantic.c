@@ -59,7 +59,13 @@ int insertSymbol(Symbol sym) {
     if (sym->kind == FUNC_DEF) {
         cur_func = sym;
         assert(currentNestDepth == 1);
-        oldsym = lookupSymbol(sym->name, true);
+        // TODO: remove this hack
+        // 函数符号应该在最外层作用域，但是我们在进入 FunDec 的时候已经进入了内层作用域，
+        // 此时添加函数符号仍然应该添加到外层，并且查找函数的时候也应该从最外层查找
+        // 参见 20-4.txt 测试用例
+        currentNestDepth = 0;
+        oldsym = lookupSymbol(sym->name, false);
+        currentNestDepth = 1;
     } else {
         oldsym = lookupSymbol(sym->name, false);
     }

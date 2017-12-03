@@ -1,0 +1,5 @@
+int func(int func) {
+}
+int main () {
+  func(1);
+}
