@@ -26,7 +26,7 @@ void initSymbolTabel() {
     typeTable = rb_tree_create(symbol_cmp);
 }
 
-Symbol getIdDef(char *name) {
+Symbol loopupSymbol(char *name) {
     for (int depth = currentNestDepth; depth >= 0; depth--) {
         Symbol tmp = &(struct SymbolList_){.name = {'\n'}};
         strcpy(tmp->name, name);
@@ -36,50 +36,29 @@ Symbol getIdDef(char *name) {
     return NULL;
 }
 
-Symbol getTypeDef(char *name) {
+Symbol loopupType(char *name) {
     Symbol sym = &(struct SymbolList_){.name = {'\n'}};
     strcpy(sym->name, name);
     return rb_tree_find(typeTable, sym);
 }
 
-// 检查两个函数签名是否一样，签名包括返回类型和参数类型
-// return:
-//   1  - true
-//   0  - false
-int funcEqual(Symbol func1, Symbol func2) {
-    if (!typeEqual(func1->u.func->retType, func2->u.func->retType))
-        return 0;
-    Field arg1 = func1->u.func->argList;
-    Field arg2 = func2->u.func->argList;
-    while (arg1 != NULL && arg2 != NULL) {
-        if (!typeEqual(arg1->type, arg2->type))
-            return 0;
-        arg1 = arg1->tail;
-        arg2 = arg2->tail;
-    }
-    if (arg1 != NULL || arg2 != NULL) {
-        return -1;
-    }
-    return 1;
-}
-
-int addIdDef(Symbol sym) {
+int insertSymbol(Symbol sym) {
     if (sym->kind == FUNC_DEF) {
         cur_func = sym;
     }
-    Symbol oldsym = getIdDef(sym->name);
+    Symbol oldsym = loopupSymbol(sym->name);
     if (oldsym != NULL) {
         if (oldsym->kind == FUNC_DEF && sym->kind == FUNC_DEF) {
-            if (oldsym->u.func->hasDefinition && sym->u.func->hasDefinition) {
+            if (oldsym->u.func->definition != NULL && sym->u.func->definition != NULL) {
                 // 函数重定义
                 return -1;
             }
-            if (funcEqual(oldsym, sym) == 0) {
+            if (funcSignitureEqual(oldsym, sym) == 0) {
                 // 函数声明/定义签名不一致
                 return -2;
             }
-            if (sym->u.func->hasDefinition)
-                oldsym->u.func->hasDefinition = 1;
+            if (sym->u.func->definition)
+                oldsym->u.func->definition = sym->u.func->definition;
             return 0;
         }
         else {
@@ -90,8 +69,8 @@ int addIdDef(Symbol sym) {
     return 0;
 }
 
-int addTypeDef(Symbol sym) {
-    if (getTypeDef(sym->name) != NULL) return -1;
+int insertType(Symbol sym) {
+    if (loopupType(sym->name) != NULL) return -1;
     rb_tree_insert(typeTable, sym);
     return 0;
 }
@@ -100,11 +79,11 @@ Type getType(ASTNode specifier) {
     Type type = NULL;
     if (specifier->subtype == TYPE_STRUCT) {
         if (specifier->child->subtype == NEW_STRUCT) {
-            type = newType(specifier->child);
+            type = buildStructType(specifier->child);
         }
         else {
             char *tag = specifier->child->child->sibling->child->val.c;
-            Symbol sym = getTypeDef(tag);
+            Symbol sym = loopupType(tag);
             if (sym != NULL) {
                 type = sym->u.type;
             } // else: report 'undefined' somewhere else
@@ -123,7 +102,7 @@ Type getType(ASTNode specifier) {
     return type;
 }
 
-Type newType(ASTNode structSpecifier) {
+Type buildStructType(ASTNode structSpecifier) {
     Type type = (Type)malloc(sizeof(struct Type_));
     type->kind = STRUCTURE;
     type->u.structure = NULL;
@@ -135,7 +114,7 @@ Type newType(ASTNode structSpecifier) {
         sym->kind = STRUCT_DEF;
         strcpy(sym->name, optTag->child->val.c);
         sym->u.type = type;
-        if (addTypeDef(sym) < 0) {
+        if (insertType(sym) < 0) {
             reportError("16", structSpecifier->lineno, "Duplicated name \"%s\"", sym->name);
         }
     }
@@ -195,34 +174,34 @@ Field getField(FieldList structure, char *name) {
     return NULL;
 }
 
-void decExtVar(Type type, ASTNode extDecList) {
+void parseExtDecList(Type type, ASTNode extDecList) {
     ASTNode varDec = extDecList->child;
     Symbol sym = getSym4VarDec(type, varDec);
-    if (addIdDef(sym) < 0) {
+    if (insertSymbol(sym) < 0) {
         reportError("3", extDecList->lineno, "Redefined variable \"%s\"", sym->name);
     }
     if (extDecList->subtype == UNFINISHED) {
-        decExtVar(type, varDec->sibling->sibling);
+        parseExtDecList(type, varDec->sibling->sibling);
     }
 }
 
-void decVar(Type type, ASTNode decList) {
+void parseDecList(Type type, ASTNode decList) {
     ASTNode dec = decList->child;
     Symbol sym = getSym4VarDec(type, dec->child);
     if (dec->subtype == INITIALIZE && typeEqual(sym->u.type, checkExpType(dec->child->sibling->sibling)) == 0) {
         reportError("5", dec->lineno, "Type mismatched for assignment");
     }
-    if (addIdDef(sym) < 0) {
+    if (insertSymbol(sym) < 0) {
         reportError("3", dec->lineno, "Redefined variable \"%s\"", sym->name);
     }
     if (decList->subtype == UNFINISHED) {
-        decVar(type, dec->sibling->sibling);
+        parseDecList(type, dec->sibling->sibling);
     }
 }
 
-void decFunc(Type type, ASTNode funDec) {
-    Symbol sym = getSym4FuncDec(type, funDec);
-    int ret = addIdDef(sym);
+void parseFunDec(Type type, ASTNode funDec) {
+    Symbol sym = getSym4FunDec(type, funDec);
+    int ret = insertSymbol(sym);
     if (ret == -1) {
         reportError("4", funDec->lineno, "Redefined function \"%s\"", sym->name);
     }
@@ -251,7 +230,7 @@ Symbol getSym4VarDec(Type type, ASTNode varDec) {
     return sym;
 }
 
-Symbol getSym4FuncDec(Type type, ASTNode funDec) {
+Symbol getSym4FunDec(Type type, ASTNode funDec) {
     Symbol sym = (Symbol)malloc(sizeof(struct SymbolList_));
     sym->kind = FUNC_DEF;
     strcpy(sym->name, funDec->child->val.c);
@@ -259,12 +238,12 @@ Symbol getSym4FuncDec(Type type, ASTNode funDec) {
     sym->u.func->retType = type;
     sym->u.func->argList = NULL;
     sym->u.func->lineno = funDec->lineno;
-    int addToSymbolTabel = 1;
+    bool addToSymbolTabel = true;
     if (funDec->sibling->type == AST_SEMI) { // 函数声明
-        sym->u.func->hasDefinition = 0;
-        addToSymbolTabel = 0;
+        sym->u.func->definition = NULL;
+        addToSymbolTabel = false;
     } else { // 函数定义
-        sym->u.func->hasDefinition = 1;
+        sym->u.func->definition = funDec->sibling; // CompSt
     }
     if (funDec->subtype != VOID_ARG) {
         sym->u.func->argList = buildArgs(NULL, funDec->child->sibling->sibling, addToSymbolTabel);
@@ -272,7 +251,7 @@ Symbol getSym4FuncDec(Type type, ASTNode funDec) {
     return sym;
 }
 
-FieldList buildArgs(FieldList argList, ASTNode varList, int addToSymbolTabel) {
+FieldList buildArgs(FieldList argList, ASTNode varList, bool addToSymbolTabel) {
     ASTNode paramDec = varList->child;
     Type type = getType(paramDec->child);
     Symbol sym = getSym4VarDec(type, paramDec->child->sibling);
@@ -286,8 +265,8 @@ FieldList buildArgs(FieldList argList, ASTNode varList, int addToSymbolTabel) {
     else if (addField(argList, field) < 0) {
         reportError("3", varList->lineno, "Redefined variable \"%s\"", sym->name);
     }
-    if (addToSymbolTabel == 1) {
-        if (addIdDef(sym) < 0) {
+    if (addToSymbolTabel == true) {
+        if (insertSymbol(sym) < 0) {
             reportError("3", varList->lineno, "Redefined variable \"%s\"", sym->name);
         }
     }
@@ -311,10 +290,10 @@ void semantic_parse(ASTNode parent) {
                 reportError("17", parent->lineno, "Undefined structure \"%s\"", parent->child->child->child->sibling->child->val.c);
             }
             else if (parent->subtype == VAR_DEC) {
-                decExtVar(type, parent->child->sibling);
+                parseExtDecList(type, parent->child->sibling);
             }
             else if (parent->subtype == FUNC_DEC) { // should be declared before check childs
-                decFunc(type, parent->child->sibling);
+                parseFunDec(type, parent->child->sibling);
             }
         }   break;
         case AST_StructSpecifier: {
@@ -344,7 +323,7 @@ void semantic_parse(ASTNode parent) {
                 reportError("17", parent->lineno, "Undefined structure \"%s\"", parent->child->child->child->sibling->child->val.c);
             }
             else {
-                decVar(type, parent->child->sibling);
+                parseDecList(type, parent->child->sibling);
             }
         }   break;
         case AST_StructSpecifier: {
@@ -354,12 +333,12 @@ void semantic_parse(ASTNode parent) {
         }   break;
         case AST_ID: {
             if (parent->subtype == VAR_USE) {
-                if (getIdDef(parent->val.c) == NULL) {
+                if (loopupSymbol(parent->val.c) == NULL) {
                     reportError("1", parent->lineno, "Undefined variable \"%s\"", parent->val.c);
                 }
             }
             else if(parent->subtype == FUNC_USE) {
-                Symbol func_sym = getIdDef(parent->val.c);
+                Symbol func_sym = loopupSymbol(parent->val.c);
                 if (func_sym == NULL) {
                     reportError("2", parent->lineno, "Undefined function \"%s\"", parent->val.c);
                 }
@@ -381,7 +360,7 @@ void semantic_parse(ASTNode parent) {
             break;
     }
     if (parent->type == AST_Program)
-        checkUndefinedFunction();
+        checkUndefinedFunc();
 }
 
 Type checkExpType(ASTNode exp) {
@@ -454,7 +433,7 @@ Type checkExpType(ASTNode exp) {
         }   break;
         case AST_MINUS: case AST_LP:    type = checkExpType(first->sibling);   break;
         case AST_ID: {
-            Symbol sym = getIdDef(first->val.c);
+            Symbol sym = loopupSymbol(first->val.c);
             if (sym == NULL) {
                 // reportError somewhere else
                 type = NULL;
@@ -550,12 +529,27 @@ void checkArgs(FieldList argList, ASTNode args) {
     }
 }
 
-void checkUndefinedFunction() {
+int funcSignitureEqual(Symbol func1, Symbol func2) {
+    if (!typeEqual(func1->u.func->retType, func2->u.func->retType)) return 0;
+    Field arg1 = func1->u.func->argList;
+    Field arg2 = func2->u.func->argList;
+    while (arg1 != NULL && arg2 != NULL) {
+        if (!typeEqual(arg1->type, arg2->type)) return 0;
+        arg1 = arg1->tail;
+        arg2 = arg2->tail;
+    }
+    if (arg1 != NULL || arg2 != NULL) {
+        return -1;
+    }
+    return 1;
+}
+
+void checkUndefinedFunc() {
     struct rb_iter *iter = rb_iter_create();
     if (iter) {
         for (Symbol sym = rb_iter_first(iter, symbolTable[currentNestDepth]);
              sym != NULL; sym = rb_iter_next(iter)) {
-            if (sym->kind == FUNC_DEF && sym->u.func->hasDefinition == 0) {
+            if (sym->kind == FUNC_DEF && sym->u.func->definition == NULL) {
                 reportError("18", sym->u.func->lineno, "Undefined Function");
             }
         }

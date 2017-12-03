@@ -21,7 +21,7 @@ enum ASTNodeType {
     AST_Dec,        AST_Exp,        AST_Args
 };
 
-#define TOKEN_SIZE 100
+#define MAX_TOKEN_SIZE 256
 
 typedef struct ASTNode_ *ASTNode;
 typedef struct Type_ *Type;
@@ -33,7 +33,7 @@ struct ASTNode_ {
     union {
         int i;
         double d;
-        char c[TOKEN_SIZE];
+        char c[MAX_TOKEN_SIZE];
     } val;
     int subtype;    // for semantic parse, specify the production for derivation
     Type expType;   // only for AST_Exp

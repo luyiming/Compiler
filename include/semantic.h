@@ -1,9 +1,12 @@
 #ifndef __SEMANTIC_H__
 #define __SEMANTIC_H__ 1
 
-#define NAME_SIZE 100
-typedef struct Type_* Type;
-typedef struct FieldList_* FieldList, *Field;
+#include "common.h"
+
+#define MAX_NAME_SIZE 256
+
+typedef struct Type_ *Type;
+typedef struct FieldList_ *FieldList, *Field;
 struct Type_ {
     enum { BASIC, ARRAY, STRUCTURE } kind;
     union {
@@ -16,7 +19,7 @@ struct Type_ {
     } u;
 };
 struct FieldList_ {
-    char name[NAME_SIZE];
+    char name[MAX_NAME_SIZE];
     Type type;
     FieldList tail;
 };
@@ -25,46 +28,53 @@ typedef struct Func_* Func;
 struct Func_ {
     Type retType;
     FieldList argList;
-    int hasDefinition;
+    ASTNode definition;
     int lineno;
 };
 
 typedef struct SymbolList_* SymbolList, *Symbol;
 struct SymbolList_ {
     enum { VAR_DEF, STRUCT_DEF, FUNC_DEF } kind;
-    char name[NAME_SIZE];
+    char name[MAX_NAME_SIZE];
     union {
         Type type;
         Func func;
     } u;
     SymbolList tail;
 };
-Symbol getIdDef(char *name);
-Symbol getTypeDef(char *name);
-int addIdDef(Symbol sym);
-int addTypeDef(Symbol sym);
 
-Type getType(ASTNode specifier);
-Type newType(ASTNode structSpecifier);
-FieldList buildFields(FieldList structure, ASTNode defList);
-int addField(FieldList structure, Field field);
-Field getField(FieldList structure, char *name);
-void decExtVar(Type type, ASTNode extDecList);
-void decVar(Type type, ASTNode decList);
-void decFunc(Type type, ASTNode funDec);
-Symbol getSym4VarDec(Type type, ASTNode dec);
-Symbol getSym4FuncDec(Type type, ASTNode funDec);
-FieldList buildArgs(FieldList argList, ASTNode varList, int addToSymbolTabel);
+void        semantic_parse      (ASTNode ASTroot);
 
-void semantic_parse(ASTNode ASTroot);
-Type checkExpType(ASTNode exp);
-int isLeftVal(ASTNode exp);
-int typeEqual(Type t1, Type t2);
-int structEqual(FieldList st1, FieldList st2);
-void checkStmtType(ASTNode stmt);
-void checkArgs(FieldList argList, ASTNode args);
-int funcEqual(Symbol func1, Symbol func2);
-void checkUndefinedFunction();
+Symbol      loopupSymbol        (char* name);
+Symbol      loopupType          (char* name);
+int         insertSymbol        (Symbol sym);
+int         insertType          (Symbol sym);
+
+Type        getType             (ASTNode specifier);
+Type        buildStructType     (ASTNode structSpecifier);
+FieldList   buildFields         (FieldList structure, ASTNode defList);
+int         addField            (FieldList structure, Field field);
+Field       getField            (FieldList structure, char *name);
+void        parseExtDecList     (Type type, ASTNode extDecList);
+void        parseDecList        (Type type, ASTNode decList);
+void        parseFunDec         (Type type, ASTNode funDec);
+Symbol      getSym4VarDec       (Type type, ASTNode varDec);
+Symbol      getSym4FunDec       (Type type, ASTNode funDec);
+
+/**
+ * @note   When building args for function declaration, there is no need to
+ *         insert args into symbol table
+ */
+FieldList   buildArgs           (FieldList argList, ASTNode varList, bool addToSymbolTabel);
+
+Type        checkExpType        (ASTNode exp);
+int         isLeftVal           (ASTNode exp);
+int         typeEqual           (Type t1, Type t2);
+int         structEqual         (FieldList st1, FieldList st2);
+void        checkStmtType       (ASTNode stmt);
+void        checkArgs           (FieldList argList, ASTNode args);
+int         funcSignitureEqual  (Symbol func1, Symbol func2);
+void        checkUndefinedFunc  ();
 
 /* ASTNode.subtype enum */
 enum ASTNodeSubtype {
@@ -73,7 +83,6 @@ enum ASTNodeSubtype {
     VAR_USE,        FUNC_USE,       VOID_ARG,
     ARRAY_USE,      STRUCT_USE,     VAR_DEC,
     FUNC_DEC,       VOID_DEC,       INITIALIZE,
-
 };
 
 /* some constant */
