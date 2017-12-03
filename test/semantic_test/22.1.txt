@@ -1,0 +1,30 @@
+int a[10][20];
+int b[5][3];
+int c[5][3][10];
+
+struct A {
+    int a;
+    float b;
+    int c[10];
+} aa;
+
+struct B {
+    float b;
+    int a;
+    int c[10];
+} bb;
+
+struct C {
+    float b;
+    int a;
+    int d[100];
+} cc;
+
+int main()
+{
+    a = b;
+    c = b;
+
+    cc = bb;
+    aa = bb;
+}

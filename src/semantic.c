@@ -26,10 +26,14 @@ void initSymbolTabel() {
     typeTable = rb_tree_create(symbol_cmp);
 }
 
-Symbol loopupSymbol(char *name) {
+Symbol loopupSymbol(char *name, bool checkUpperScope) {
+    Symbol tmp = &(struct SymbolList_){.name = {'\n'}};
+    strcpy(tmp->name, name);
+
+    if (checkUpperScope == false)
+        return rb_tree_find(symbolTable[currentNestDepth], tmp);
+
     for (int depth = currentNestDepth; depth >= 0; depth--) {
-        Symbol tmp = &(struct SymbolList_){.name = {'\n'}};
-        strcpy(tmp->name, name);
         Symbol sym = rb_tree_find(symbolTable[depth], tmp);
         if (sym) return sym;
     }
@@ -45,15 +49,16 @@ Symbol loopupType(char *name) {
 int insertSymbol(Symbol sym) {
     if (sym->kind == FUNC_DEF) {
         cur_func = sym;
+        assert(currentNestDepth == 0);
     }
-    Symbol oldsym = loopupSymbol(sym->name);
+    Symbol oldsym = loopupSymbol(sym->name, false);
     if (oldsym != NULL) {
         if (oldsym->kind == FUNC_DEF && sym->kind == FUNC_DEF) {
             if (oldsym->u.func->definition != NULL && sym->u.func->definition != NULL) {
                 // 函数重定义
                 return -1;
             }
-            if (funcSignitureEqual(oldsym, sym) == 0) {
+            if (funcSignitureEqual(oldsym, sym) == false) {
                 // 函数声明/定义签名不一致
                 return -2;
             }
@@ -188,7 +193,7 @@ void parseExtDecList(Type type, ASTNode extDecList) {
 void parseDecList(Type type, ASTNode decList) {
     ASTNode dec = decList->child;
     Symbol sym = getSym4VarDec(type, dec->child);
-    if (dec->subtype == INITIALIZE && typeEqual(sym->u.type, checkExpType(dec->child->sibling->sibling)) == 0) {
+    if (dec->subtype == INITIALIZE && typeEqual(sym->u.type, checkExpType(dec->child->sibling->sibling)) == false) {
         reportError("5", dec->lineno, "Type mismatched for assignment");
     }
     if (insertSymbol(sym) < 0) {
@@ -333,12 +338,12 @@ void semantic_parse(ASTNode parent) {
         }   break;
         case AST_ID: {
             if (parent->subtype == VAR_USE) {
-                if (loopupSymbol(parent->val.c) == NULL) {
+                if (loopupSymbol(parent->val.c, true) == NULL) {
                     reportError("1", parent->lineno, "Undefined variable \"%s\"", parent->val.c);
                 }
             }
             else if(parent->subtype == FUNC_USE) {
-                Symbol func_sym = loopupSymbol(parent->val.c);
+                Symbol func_sym = loopupSymbol(parent->val.c, true);
                 if (func_sym == NULL) {
                     reportError("2", parent->lineno, "Undefined function \"%s\"", parent->val.c);
                 }
@@ -408,10 +413,10 @@ Type checkExpType(ASTNode exp) {
             else {
                 switch (first->sibling->type) {
                     case AST_ASSIGNOP: {
-                        if (isLeftVal(first) == 0) {
+                        if (isLeftVal(first) == false) {
                             reportError("6", exp->lineno, "The left-hand side of an assignment must be a variable");
                         }
-                        if (typeEqual(type, checkExpType(first->sibling->sibling)) == 0) {
+                        if (typeEqual(type, checkExpType(first->sibling->sibling)) == false) {
                             reportError("5", exp->lineno, "Type mismatched for assignment");
                             type = NULL;
                         }
@@ -422,7 +427,7 @@ Type checkExpType(ASTNode exp) {
                         type->u.basic = TYPE_INT;
                     }   break;
                     case AST_PLUS:  case AST_MINUS: case AST_STAR:  case AST_DIV: {
-                        if (typeEqual(type, checkExpType(first->sibling->sibling)) == 0) {
+                        if (typeEqual(type, checkExpType(first->sibling->sibling)) == false) {
                             reportError("7", exp->lineno, "Type mismatched for operands");
                             type = NULL;
                         }
@@ -433,7 +438,7 @@ Type checkExpType(ASTNode exp) {
         }   break;
         case AST_MINUS: case AST_LP:    type = checkExpType(first->sibling);   break;
         case AST_ID: {
-            Symbol sym = loopupSymbol(first->val.c);
+            Symbol sym = loopupSymbol(first->val.c, true);
             if (sym == NULL) {
                 // reportError somewhere else
                 type = NULL;
@@ -461,39 +466,43 @@ Type checkExpType(ASTNode exp) {
     return type;
 }
 
-int isLeftVal(ASTNode exp) {
+bool isLeftVal(ASTNode exp) {
     ASTNode first = exp->child;
     switch (first->type) {
         case AST_Exp: {
-            if (first->sibling->type == AST_LB || first->sibling->type == AST_DOT
-            || first->sibling->type == AST_ASSIGNOP) {
-                return 1;
+            if (first->sibling->type == AST_LB ||
+                first->sibling->type == AST_DOT ||
+                first->sibling->type == AST_ASSIGNOP) {
+                return true;
             }
-            return 0;
-        }   break;
-        case AST_LP:    return isLeftVal(first->sibling);   break;
+            return false;
+        } break;
+        case AST_LP:
+            return isLeftVal(first->sibling);
+            break;
         case AST_ID: {
-            if (first->subtype == FUNC_USE) return 0;
-            return 1;
-        }   break;
-        default:        return 0;
+            if (first->subtype == FUNC_USE) return false;
+            return true;
+        } break;
+        default:
+            return false;
     }
-    return 0;
+    return false;
 }
 
-int typeEqual(Type t1, Type t2) {
-    if (t1 == NULL || t2 == NULL) return 1;
-    if (t1->kind != t2->kind) return 0;
+bool typeEqual(Type t1, Type t2) {
+    if (t1 == NULL || t2 == NULL) return true;
+    if (t1->kind != t2->kind) return false;
     if (t1->kind == BASIC) return t1->u.basic == t2->u.basic;
     if (t1->kind == STRUCTURE) return structEqual(t1->u.structure, t2->u.structure);
-    // if (t1->kind == ARRAY) return typeEqual(t1->u.array.elem, t2->u.array.elem);
+    if (t1->kind == ARRAY) return typeEqual(t1->u.array.elem, t2->u.array.elem);
     panic("Unknown Type");
 }
 
-int structEqual(FieldList st1, FieldList st2) {
-    if (st1 == NULL && st2 == NULL) return 1;
-    if (st1 == NULL || st2 == NULL) return 0;
-    if (typeEqual(st1->type, st2->type) == 0) return 0;
+bool structEqual(FieldList st1, FieldList st2) {
+    if (st1 == NULL && st2 == NULL) return true;
+    if (st1 == NULL || st2 == NULL) return false;
+    if (typeEqual(st1->type, st2->type) == false) return false;
     return structEqual(st1->tail, st2->tail);
 }
 
@@ -501,19 +510,19 @@ void checkStmtType(ASTNode stmt) {
     if (stmt->child->type == AST_RETURN) {
         assert(cur_func);
         Type retType = cur_func->u.func->retType;
-        if (typeEqual(retType, checkExpType(stmt->child->sibling)) == 0) {
+        if (typeEqual(retType, checkExpType(stmt->child->sibling)) == false) {
             reportError("8", stmt->lineno, "Type mismatched for return");
         }
     }
 }
 
 void checkArgs(FieldList argList, ASTNode args) {
-    int matched = 1;
+    bool matched = true;
     assert(args);   // args->child == NULL if args is void
     if (args->child == NULL) {
-        if (argList != NULL) matched = 0;
+        if (argList != NULL) matched = false;
     }
-    else if (argList == NULL) matched = 0;
+    else if (argList == NULL) matched = false;
     else {
         matched = typeEqual(argList->type, checkExpType(args->child));
         if (matched) {
@@ -521,27 +530,29 @@ void checkArgs(FieldList argList, ASTNode args) {
                 checkArgs(argList->tail, args->child->sibling->sibling);
                 return;
             }
-            else if (argList->tail != NULL) matched = 0;
+            else if (argList->tail != NULL) matched = false;
         }
     }
-    if (matched == 0) {
+    if (matched == false) {
         reportError("9", args->lineno, "Function call is not applicable");
     }
 }
 
-int funcSignitureEqual(Symbol func1, Symbol func2) {
-    if (!typeEqual(func1->u.func->retType, func2->u.func->retType)) return 0;
+bool funcSignitureEqual(Symbol func1, Symbol func2) {
+    if (!typeEqual(func1->u.func->retType, func2->u.func->retType))
+        return false;
     Field arg1 = func1->u.func->argList;
     Field arg2 = func2->u.func->argList;
     while (arg1 != NULL && arg2 != NULL) {
-        if (!typeEqual(arg1->type, arg2->type)) return 0;
+        if (!typeEqual(arg1->type, arg2->type))
+            return false;
         arg1 = arg1->tail;
         arg2 = arg2->tail;
     }
     if (arg1 != NULL || arg2 != NULL) {
-        return -1;
+        return false;
     }
-    return 1;
+    return true;
 }
 
 void checkUndefinedFunc() {

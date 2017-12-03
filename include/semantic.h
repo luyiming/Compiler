@@ -45,7 +45,7 @@ struct SymbolList_ {
 
 void        semantic_parse      (ASTNode ASTroot);
 
-Symbol      loopupSymbol        (char* name);
+Symbol      loopupSymbol        (char* name, bool checkUpperScope);
 Symbol      loopupType          (char* name);
 int         insertSymbol        (Symbol sym);
 int         insertType          (Symbol sym);
@@ -67,13 +67,13 @@ Symbol      getSym4FunDec       (Type type, ASTNode funDec);
  */
 FieldList   buildArgs           (FieldList argList, ASTNode varList, bool addToSymbolTabel);
 
+bool        isLeftVal           (ASTNode exp);
+bool        typeEqual           (Type t1, Type t2);
+bool        structEqual         (FieldList st1, FieldList st2);
+bool        funcSignitureEqual  (Symbol func1, Symbol func2);
 Type        checkExpType        (ASTNode exp);
-int         isLeftVal           (ASTNode exp);
-int         typeEqual           (Type t1, Type t2);
-int         structEqual         (FieldList st1, FieldList st2);
 void        checkStmtType       (ASTNode stmt);
 void        checkArgs           (FieldList argList, ASTNode args);
-int         funcSignitureEqual  (Symbol func1, Symbol func2);
 void        checkUndefinedFunc  ();
 
 /* ASTNode.subtype enum */
