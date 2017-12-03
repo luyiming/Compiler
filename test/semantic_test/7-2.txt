@@ -1,0 +1,19 @@
+int ifunc() {
+    struct St {
+        float x;
+    } a, b;
+    a = b;
+    a.x = 2.3;
+}
+float ffunc() {
+    int arr[20], brr[10];
+    arr[2] = 2;
+    brr = arr;
+}
+int main() {
+    int x = ffunc();
+    float y = ifunc();
+    ffunc() = x;
+
+    ifunc = ffunc;
+}
