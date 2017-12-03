@@ -451,13 +451,28 @@ Type checkExpType(ASTNode exp) {
                             type = NULL;
                         }
                     }   break;
-                    case AST_AND:   case AST_OR:    case AST_RELOP: {
-                        type = (Type)malloc(sizeof(struct Type_));
-                        type->kind = BASIC;
-                        type->u.basic = TYPE_INT;
+                    case AST_AND:   case AST_OR: {
+                        if ((type != NULL && (type->kind != BASIC || type->u.basic != TYPE_INT))
+                        || typeEqual(type, checkExpType(first->sibling->sibling)) == false) {
+                            reportError("7", exp->lineno, "Type mismatched for boolean operator");
+                            type = NULL;
+                        }
+                    }   break;
+                    case AST_RELOP: {
+                        if ((type != NULL && type->kind != BASIC)
+                        || typeEqual(type, checkExpType(first->sibling->sibling)) == false) {
+                            reportError("7", exp->lineno, "Type mismatched for operands");
+                            type = NULL;
+                        }
+                        else {
+                            type = (Type)malloc(sizeof(struct Type_));
+                            type->kind = BASIC;
+                            type->u.basic = TYPE_INT;
+                        }
                     }   break;
                     case AST_PLUS:  case AST_MINUS: case AST_STAR:  case AST_DIV: {
-                        if (typeEqual(type, checkExpType(first->sibling->sibling)) == false) {
+                        if ((type != NULL && type->kind != BASIC)
+                        || typeEqual(type, checkExpType(first->sibling->sibling)) == false) {
                             reportError("7", exp->lineno, "Type mismatched for operands");
                             type = NULL;
                         }
@@ -466,7 +481,21 @@ Type checkExpType(ASTNode exp) {
                 }
             }
         }   break;
-        case AST_MINUS: case AST_LP:    type = checkExpType(first->sibling);   break;
+        case AST_LP:    type = checkExpType(first->sibling);   break;
+        case AST_MINUS: {
+            type = checkExpType(first->sibling);
+            if (type != NULL && type->kind != BASIC) {
+                reportError("7", exp->lineno, "Type mismatched for arithmetic operator");
+                type = NULL;
+            }
+        }   break;
+        case AST_NOT: {
+            type = checkExpType(first->sibling);
+            if (type != NULL && (type->kind != BASIC || type->u.basic != TYPE_INT)) {
+                reportError("7", exp->lineno, "Type mismatched for boolean operator");
+                type = NULL;
+            }
+        }   break;
         case AST_ID: {
             Symbol sym = lookupSymbol(first->val.c, true);
             if (sym == NULL) {
@@ -480,7 +509,7 @@ Type checkExpType(ASTNode exp) {
                 type = sym->u.type;
             }
         }   break;
-        case AST_INT: case AST_NOT: {
+        case AST_INT: {
             type = (Type)malloc(sizeof(struct Type_));
             type->kind = BASIC;
             type->u.basic = TYPE_INT;
@@ -537,11 +566,19 @@ bool structEqual(FieldList st1, FieldList st2) {
 }
 
 void checkStmtType(ASTNode stmt) {
-    if (stmt->child->type == AST_RETURN) {
+    ASTNode first = stmt->child;
+    if (first->type == AST_RETURN) {
         assert(cur_func);
         Type retType = cur_func->u.func->retType;
         if (typeEqual(retType, checkExpType(stmt->child->sibling)) == false) {
             reportError("8", stmt->lineno, "Type mismatched for return");
+        }
+    }
+    else if (first->type == AST_IF || first->type == AST_WHILE) {
+        ASTNode exp = first->sibling->sibling;
+        Type type = checkExpType(exp);
+        if (type != NULL && (type->kind != BASIC || type->u.basic != TYPE_INT)) {
+            reportError("7", exp->lineno, "Type mismatched for boolean expression");
         }
     }
 }

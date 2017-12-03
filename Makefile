@@ -10,7 +10,7 @@ parser: src/syntax.y src/lexical.l src/parser.c src/AST.c
 	bison src/syntax.y $(BFLAGS) -o out/syntax.tab.c
 	$(CC) out/syntax.tab.c $(CSOURCE) $(CFLAGS) -o $(PARSER)
 
-TESTCASE := test/testcase2.c
+TESTCASE := test/semantic_test/7-1.txt
 test: parser
 	$(PARSER) $(TESTCASE)
 
