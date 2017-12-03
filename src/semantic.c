@@ -391,11 +391,12 @@ void semantic_parse(ASTNode parent) {
         case AST_CompSt: {
             leaveScope();
         }   break;
+        case AST_Program: {
+            checkUndefinedFunc();
+        }   break;
         default:
             break;
     }
-    if (parent->type == AST_Program)
-        checkUndefinedFunc();
 }
 
 Type checkExpType(ASTNode exp) {
