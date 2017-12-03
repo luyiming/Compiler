@@ -9,7 +9,6 @@
 
 #define MAX_NEST_DEPTH 20
 struct rb_tree *symbolTable[MAX_NEST_DEPTH];
-struct rb_tree *typeTable[MAX_NEST_DEPTH];
 int currentNestedDepth = 0;
 Symbol cur_func = NULL;
 int struct_env_dep = 0;
@@ -23,7 +22,6 @@ int symbol_cmp(struct rb_tree *self, struct rb_node *node_a,
 
 void initSymbolTabel() {
     symbolTable[0] = rb_tree_create(symbol_cmp);
-    typeTable[0] = rb_tree_create(symbol_cmp);
 }
 
 Symbol lookupSymbol(char *name, bool checkUpperScope) {
@@ -45,10 +43,10 @@ Symbol lookupType(char *name, bool checkUpperScope) {
     strcpy(tmp->name, name);
 
     if (checkUpperScope == false)
-        return rb_tree_find(typeTable[currentNestedDepth], tmp);
+        return rb_tree_find(symbolTable[currentNestedDepth], tmp);
 
     for (int depth = currentNestedDepth; depth >= 0; depth--) {
-        Symbol sym = rb_tree_find(typeTable[depth], tmp);
+        Symbol sym = rb_tree_find(symbolTable[depth], tmp);
         if (sym) return sym;
     }
     return NULL;
@@ -97,7 +95,7 @@ int insertSymbol(Symbol sym) {
 
 int insertType(Symbol sym) {
     if (lookupType(sym->name, false) != NULL) return -1;
-    rb_tree_insert(typeTable[currentNestedDepth], sym);
+    rb_tree_insert(symbolTable[currentNestedDepth], sym);
     return 0;
 }
 
@@ -640,11 +638,9 @@ void checkUndefinedFunc() {
 void enterScope() {
     currentNestedDepth++;
     symbolTable[currentNestedDepth] = rb_tree_create(symbol_cmp);
-    typeTable[currentNestedDepth] = rb_tree_create(symbol_cmp);
 }
 
 void leaveScope() {
     rb_tree_dealloc(symbolTable[currentNestedDepth], NULL);
-    rb_tree_dealloc(typeTable[currentNestedDepth], NULL);
     currentNestedDepth--;
 }
