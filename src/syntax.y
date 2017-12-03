@@ -40,7 +40,7 @@ void yyerror(char*);
 %%
 
 /* High-level Definitions */
-Program : ExtDefList                { $$ = ASTroot = newASTNode(AST_Program, @$.first_line); $$->child = ASTroot->child = $1; }
+Program : ExtDefList                { $$ = ASTroot = newASTNode(AST_Program, @$.first_line); $$->child = ASTroot->child = $1; $1->parent = ASTroot; }
     ;
 
 ExtDefList : ExtDef ExtDefList      { $$ = newASTNode(AST_ExtDefList, @$.first_line); addASTNode($$, 2, $1, $2); }

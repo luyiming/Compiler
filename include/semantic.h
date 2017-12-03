@@ -45,10 +45,12 @@ struct SymbolList_ {
 
 void        semantic_parse      (ASTNode ASTroot);
 
-Symbol      loopupSymbol        (char* name, bool checkUpperScope);
-Symbol      loopupType          (char* name);
+Symbol      lookupSymbol        (char* name, bool checkUpperScope);
+Symbol      lookupType          (char* name, bool checkUpperScope);
+Symbol      lookupFunction      (char* name);
 int         insertSymbol        (Symbol sym);
 int         insertType          (Symbol sym);
+int         insertFunction      (Symbol sym);
 
 Type        getType             (ASTNode specifier);
 Type        buildStructType     (ASTNode structSpecifier);
@@ -75,6 +77,9 @@ Type        checkExpType        (ASTNode exp);
 void        checkStmtType       (ASTNode stmt);
 void        checkArgs           (FieldList argList, ASTNode args);
 void        checkUndefinedFunc  ();
+
+void        enterScope          ();
+void        leaveScope          ();
 
 /* ASTNode.subtype enum */
 enum ASTNodeSubtype {

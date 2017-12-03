@@ -30,7 +30,7 @@ const char *const ASTNodeTypeName[] = {
 
 ASTNode newASTNode(enum ASTNodeType type, int lineno) {
     ASTNode p = (ASTNode )malloc(sizeof(struct ASTNode_));
-    p->child = p->sibling = NULL;
+    p->child = p->sibling = p->parent = NULL;
     p->type = type;
     p->lineno = lineno;
     p->subtype = DONTCARE;
@@ -47,8 +47,10 @@ int addASTNode(ASTNode parent, int count, ...) {
 
     ASTNode p, q;
     parent->child = p = va_arg(argp, ASTNode);
+    p->parent = parent;
     for (int i = 1; i < count; i++) {
         q = va_arg(argp, ASTNode);
+        q->parent = parent;
         p->sibling = q;
         p = q;
     }

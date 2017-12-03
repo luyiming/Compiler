@@ -1,3 +1,7 @@
-int func(int a) {
-  int a;
+int func() {
+
+}
+int func;
+int main() {
+  int func = 1;
 }

@@ -1,0 +1,15 @@
+struct A {
+    int a;
+};
+
+int main()
+{
+    struct A {
+        int b;
+    } a;
+    if (1) {
+        struct A {
+            int c;
+        } a;
+    }
+}

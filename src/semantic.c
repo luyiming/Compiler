@@ -9,8 +9,8 @@
 
 #define MAX_NEST_DEPTH 20
 struct rb_tree *symbolTable[MAX_NEST_DEPTH];
+struct rb_tree *typeTable[MAX_NEST_DEPTH];
 int currentNestDepth = 0;
-struct rb_tree *typeTable = NULL;
 Symbol cur_func = NULL;
 int struct_env_dep = 0;
 
@@ -23,10 +23,10 @@ int symbol_cmp(struct rb_tree *self, struct rb_node *node_a,
 
 void initSymbolTabel() {
     symbolTable[0] = rb_tree_create(symbol_cmp);
-    typeTable = rb_tree_create(symbol_cmp);
+    typeTable[0] = rb_tree_create(symbol_cmp);
 }
 
-Symbol loopupSymbol(char *name, bool checkUpperScope) {
+Symbol lookupSymbol(char *name, bool checkUpperScope) {
     Symbol tmp = &(struct SymbolList_){.name = {'\n'}};
     strcpy(tmp->name, name);
 
@@ -40,18 +40,29 @@ Symbol loopupSymbol(char *name, bool checkUpperScope) {
     return NULL;
 }
 
-Symbol loopupType(char *name) {
-    Symbol sym = &(struct SymbolList_){.name = {'\n'}};
-    strcpy(sym->name, name);
-    return rb_tree_find(typeTable, sym);
+Symbol lookupType(char *name, bool checkUpperScope) {
+    Symbol tmp = &(struct SymbolList_){.name = {'\n'}};
+    strcpy(tmp->name, name);
+
+    if (checkUpperScope == false)
+        return rb_tree_find(typeTable[currentNestDepth], tmp);
+
+    for (int depth = currentNestDepth; depth >= 0; depth--) {
+        Symbol sym = rb_tree_find(typeTable[depth], tmp);
+        if (sym) return sym;
+    }
+    return NULL;
 }
 
 int insertSymbol(Symbol sym) {
+    Symbol oldsym;
     if (sym->kind == FUNC_DEF) {
         cur_func = sym;
-        assert(currentNestDepth == 0);
+        assert(currentNestDepth == 1);
+        oldsym = lookupSymbol(sym->name, true);
+    } else {
+        oldsym = lookupSymbol(sym->name, false);
     }
-    Symbol oldsym = loopupSymbol(sym->name, false);
     if (oldsym != NULL) {
         if (oldsym->kind == FUNC_DEF && sym->kind == FUNC_DEF) {
             if (oldsym->u.func->definition != NULL && sym->u.func->definition != NULL) {
@@ -70,13 +81,17 @@ int insertSymbol(Symbol sym) {
             return -1;
         }
     }
-    rb_tree_insert(symbolTable[currentNestDepth], sym);
+    if (sym->kind == FUNC_DEF) {
+        rb_tree_insert(symbolTable[0], sym);
+    } else {
+        rb_tree_insert(symbolTable[currentNestDepth], sym);
+    }
     return 0;
 }
 
 int insertType(Symbol sym) {
-    if (loopupType(sym->name) != NULL) return -1;
-    rb_tree_insert(typeTable, sym);
+    if (lookupType(sym->name, false) != NULL) return -1;
+    rb_tree_insert(typeTable[currentNestDepth], sym);
     return 0;
 }
 
@@ -88,7 +103,7 @@ Type getType(ASTNode specifier) {
         }
         else {
             char *tag = specifier->child->child->sibling->child->val.c;
-            Symbol sym = loopupType(tag);
+            Symbol sym = lookupType(tag, true);
             if (sym != NULL) {
                 type = sym->u.type;
             } // else: report 'undefined' somewhere else
@@ -298,6 +313,7 @@ void semantic_parse(ASTNode parent) {
                 parseExtDecList(type, parent->child->sibling);
             }
             else if (parent->subtype == FUNC_DEC) { // should be declared before check childs
+                enterScope();
                 parseFunDec(type, parent->child->sibling);
             }
         }   break;
@@ -307,9 +323,11 @@ void semantic_parse(ASTNode parent) {
             }
         }   break;
         case AST_CompSt: {
-            currentNestDepth++;
-            // symbolTable[currentNestDepth] = NULL;
-            symbolTable[currentNestDepth] = rb_tree_create(symbol_cmp);
+            if (parent->parent->type != AST_ExtDef) {
+                // 如果是 AST_ExtDef，表示这个 CompSt 是一个函数的 CompSt，而函数的
+                // 作用域在 FunDec 的时候就已经进入了
+                enterScope();
+            }
         }   break;
         default:
             break;
@@ -338,12 +356,12 @@ void semantic_parse(ASTNode parent) {
         }   break;
         case AST_ID: {
             if (parent->subtype == VAR_USE) {
-                if (loopupSymbol(parent->val.c, true) == NULL) {
+                if (lookupSymbol(parent->val.c, true) == NULL) {
                     reportError("1", parent->lineno, "Undefined variable \"%s\"", parent->val.c);
                 }
             }
             else if(parent->subtype == FUNC_USE) {
-                Symbol func_sym = loopupSymbol(parent->val.c, true);
+                Symbol func_sym = lookupSymbol(parent->val.c, true);
                 if (func_sym == NULL) {
                     reportError("2", parent->lineno, "Undefined function \"%s\"", parent->val.c);
                 }
@@ -357,9 +375,15 @@ void semantic_parse(ASTNode parent) {
         }   break;
         case AST_Exp:   checkExpType(parent); break;
         case AST_Stmt:  checkStmtType(parent);  break;
+        case AST_FunDec: {
+            if (parent->sibling->type == AST_SEMI) {
+                // 如果是函数声明，则作用域在这个时候退出
+                // 否则如果是函数定义，则作用域在 CompSt 结束的时候退出
+                leaveScope();
+            }
+        }   break;
         case AST_CompSt: {
-            rb_tree_dealloc(symbolTable[currentNestDepth], NULL);
-            currentNestDepth--;
+            leaveScope();
         }   break;
         default:
             break;
@@ -438,7 +462,7 @@ Type checkExpType(ASTNode exp) {
         }   break;
         case AST_MINUS: case AST_LP:    type = checkExpType(first->sibling);   break;
         case AST_ID: {
-            Symbol sym = loopupSymbol(first->val.c, true);
+            Symbol sym = lookupSymbol(first->val.c, true);
             if (sym == NULL) {
                 // reportError somewhere else
                 type = NULL;
@@ -566,4 +590,16 @@ void checkUndefinedFunc() {
         }
         rb_iter_dealloc(iter);
     }
+}
+
+void enterScope() {
+    currentNestDepth++;
+    symbolTable[currentNestDepth] = rb_tree_create(symbol_cmp);
+    typeTable[currentNestDepth] = rb_tree_create(symbol_cmp);
+}
+
+void leaveScope() {
+    rb_tree_dealloc(symbolTable[currentNestDepth], NULL);
+    rb_tree_dealloc(typeTable[currentNestDepth], NULL);
+    currentNestDepth--;
 }

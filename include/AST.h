@@ -29,7 +29,7 @@ enum ASTNodeSubtype;
 struct ASTNode_ {
     enum ASTNodeType type;
     int lineno;
-    ASTNode child, sibling;
+    ASTNode child, sibling, parent;
     union {
         int i;
         double d;
