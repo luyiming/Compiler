@@ -4,7 +4,10 @@ import os
 import subprocess
 import itertools
 
+ret_val = 0
+
 def compare(true_file, output_lines):
+    global ret_val
     PATTERN = re.compile(r'Error type (.*) at Line (\d+):.*')
     with open(true_file) as f:
         for lineno, (line1, line2) in enumerate(itertools.zip_longest(f, output_lines, fillvalue="")):
@@ -14,11 +17,13 @@ def compare(true_file, output_lines):
                     print('Fail: Line {} File: {}'.format(lineno + 1, true_file))
                     print('  true   >>> ', line1.strip())
                     print('  output >>> ', line2.strip())
+                    ret_val = 1
                     return
             elif line1.strip() != line2.strip():
                 print('Fail: Line {} File: {}'.format(lineno + 1, true_file))
                 print('  true   >>> ', line1.strip())
                 print('  output >>> ', line2.strip())
+                ret_val = 1
                 return
     print('pass {}'.format(true_file))
 
@@ -38,3 +43,4 @@ if __name__ == '__main__':
                 output_lines = subprocess.Popen('{} {}'.format(parser, src_file), shell=True, stdout=subprocess.PIPE).stdout.readlines()
                 output_lines = [line.decode('utf-8') for line in output_lines]
                 compare(true_file, output_lines)
+    sys.exit(ret_val)

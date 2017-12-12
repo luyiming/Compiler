@@ -1,0 +1,9 @@
+language: c
+
+addons:
+  apt:
+    packages:
+    - flex
+    - bison
+
+script: make testall
