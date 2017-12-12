@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/luyiming/Compiler.svg?token=ZqSWSJNAyq6N8GY6iVps&branch=master)](https://travis-ci.com/luyiming/Compiler)
+
 # Compiler for C--
 
 # Building Source
