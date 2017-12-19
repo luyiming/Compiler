@@ -1,6 +1,6 @@
 CC := gcc
 CFLAGS := -lfl -ly -I./include -std=gnu11
-CSOURCE := src/parser.c src/AST.c src/semantic.c src/common.c src/rb_tree.c
+CSOURCE := src/parser.c src/AST.c src/semantic.c src/common.c src/rb_tree.c src/ir.c
 BFLAGS := -d -v --locations
 PARSER := out/parser
 

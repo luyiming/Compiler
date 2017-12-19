@@ -99,7 +99,7 @@ int insertType(Symbol sym) {
     return 0;
 }
 
-Type getType(ASTNode specifier) {
+Type getType(ASTNode *specifier) {
     Type type = NULL;
     if (specifier->subtype == TYPE_STRUCT) {
         if (specifier->child->subtype == NEW_STRUCT) {
@@ -126,12 +126,12 @@ Type getType(ASTNode specifier) {
     return type;
 }
 
-Type buildStructType(ASTNode structSpecifier) {
+Type buildStructType(ASTNode *structSpecifier) {
     Type type = (Type)malloc(sizeof(struct Type_));
     type->kind = STRUCTURE;
     type->u.structure = NULL;
-    ASTNode optTag = structSpecifier->child->sibling;
-    ASTNode defList = optTag->sibling->sibling;
+    ASTNode *optTag = structSpecifier->child->sibling;
+    ASTNode *defList = optTag->sibling->sibling;
     type->u.structure = buildFields(type->u.structure, defList);
     if (optTag->subtype != EMPTY) {
         Symbol sym = (Symbol)malloc(sizeof(struct SymbolList_));
@@ -145,13 +145,13 @@ Type buildStructType(ASTNode structSpecifier) {
     return type;
 }
 
-FieldList buildFields(FieldList structure, ASTNode defList) {
+FieldList buildFields(FieldList structure, ASTNode *defList) {
     if (defList->subtype == EMPTY) return structure;
-    ASTNode def = defList->child;
+    ASTNode *def = defList->child;
     Type type = getType(def->child);
-    ASTNode decList = def->child->sibling;
+    ASTNode *decList = def->child->sibling;
     while (1) {
-        ASTNode dec = decList->child;
+        ASTNode *dec = decList->child;
         Symbol sym = getSym4VarDec(type, dec->child);
         if (dec->subtype == INITIALIZE) {
             reportError("15", dec->lineno, "Attemp to initialize field \"%s\"", sym->name);
@@ -198,8 +198,8 @@ Field getField(FieldList structure, char *name) {
     return NULL;
 }
 
-void parseExtDecList(Type type, ASTNode extDecList) {
-    ASTNode varDec = extDecList->child;
+void parseExtDecList(Type type, ASTNode *extDecList) {
+    ASTNode *varDec = extDecList->child;
     Symbol sym = getSym4VarDec(type, varDec);
     if (insertSymbol(sym) < 0) {
         reportError("3", extDecList->lineno, "Redefined variable \"%s\"", sym->name);
@@ -209,8 +209,8 @@ void parseExtDecList(Type type, ASTNode extDecList) {
     }
 }
 
-void parseDecList(Type type, ASTNode decList) {
-    ASTNode dec = decList->child;
+void parseDecList(Type type, ASTNode *decList) {
+    ASTNode *dec = decList->child;
     Symbol sym = getSym4VarDec(type, dec->child);
     if (dec->subtype == INITIALIZE && typeEqual(sym->u.type, checkExpType(dec->child->sibling->sibling)) == false) {
         reportError("5", dec->lineno, "Type mismatched for assignment");
@@ -223,7 +223,7 @@ void parseDecList(Type type, ASTNode decList) {
     }
 }
 
-void parseFunDec(Type type, ASTNode funDec) {
+void parseFunDec(Type type, ASTNode *funDec) {
     Symbol sym = getSym4FunDec(type, funDec);
     int ret = insertSymbol(sym);
     if (ret == -1) {
@@ -234,7 +234,7 @@ void parseFunDec(Type type, ASTNode funDec) {
     }
 }
 
-Symbol getSym4VarDec(Type type, ASTNode varDec) {
+Symbol getSym4VarDec(Type type, ASTNode *varDec) {
     Symbol sym = (Symbol)malloc(sizeof(struct SymbolList_));
     if (varDec->subtype == TYPE_ARRAY) {
         Symbol subSym = getSym4VarDec(type, varDec->child);
@@ -254,7 +254,7 @@ Symbol getSym4VarDec(Type type, ASTNode varDec) {
     return sym;
 }
 
-Symbol getSym4FunDec(Type type, ASTNode funDec) {
+Symbol getSym4FunDec(Type type, ASTNode *funDec) {
     Symbol sym = (Symbol)malloc(sizeof(struct SymbolList_));
     sym->kind = FUNC_DEF;
     strcpy(sym->name, funDec->child->val.c);
@@ -275,8 +275,8 @@ Symbol getSym4FunDec(Type type, ASTNode funDec) {
     return sym;
 }
 
-FieldList buildArgs(FieldList argList, ASTNode varList, bool addToSymbolTabel) {
-    ASTNode paramDec = varList->child;
+FieldList buildArgs(FieldList argList, ASTNode *varList, bool addToSymbolTabel) {
+    ASTNode *paramDec = varList->child;
     Type type = getType(paramDec->child);
     Symbol sym = getSym4VarDec(type, paramDec->child->sibling);
     Field field = (Field)malloc(sizeof(struct FieldList_));
@@ -300,7 +300,7 @@ FieldList buildArgs(FieldList argList, ASTNode varList, bool addToSymbolTabel) {
     return argList;
 }
 
-void semantic_parse(ASTNode parent) {
+void semantic_parse(ASTNode *parent) {
     if (parent == NULL) return;
     if (parent->type == AST_Program) {
         initSymbolTabel();
@@ -337,7 +337,7 @@ void semantic_parse(ASTNode parent) {
             break;
     }
     // go down
-    for (ASTNode p = parent->child; p != NULL; p = p->sibling) {
+    for (ASTNode *p = parent->child; p != NULL; p = p->sibling) {
         semantic_parse(p);
     }
     // after
@@ -397,10 +397,10 @@ void semantic_parse(ASTNode parent) {
     }
 }
 
-Type checkExpType(ASTNode exp) {
+Type checkExpType(ASTNode *exp) {
     if (exp->expType != UNCHECKED) return exp->expType;
     Type type = NULL;
-    ASTNode first = exp->child;
+    ASTNode *first = exp->child;
     switch (first->type) {
         case AST_Exp: {
             type = checkExpType(first);
@@ -524,8 +524,8 @@ Type checkExpType(ASTNode exp) {
     return type;
 }
 
-bool isLeftVal(ASTNode exp) {
-    ASTNode first = exp->child;
+bool isLeftVal(ASTNode *exp) {
+    ASTNode *first = exp->child;
     switch (first->type) {
         case AST_Exp: {
             if (first->sibling->type == AST_LB ||
@@ -564,8 +564,8 @@ bool structEqual(FieldList st1, FieldList st2) {
     return structEqual(st1->tail, st2->tail);
 }
 
-void checkStmtType(ASTNode stmt) {
-    ASTNode first = stmt->child;
+void checkStmtType(ASTNode *stmt) {
+    ASTNode *first = stmt->child;
     if (first->type == AST_RETURN) {
         assert(cur_func);
         Type retType = cur_func->u.func->retType;
@@ -574,7 +574,7 @@ void checkStmtType(ASTNode stmt) {
         }
     }
     else if (first->type == AST_IF || first->type == AST_WHILE) {
-        ASTNode exp = first->sibling->sibling;
+        ASTNode *exp = first->sibling->sibling;
         Type type = checkExpType(exp);
         if (type != NULL && (type->kind != BASIC || type->u.basic != TYPE_INT)) {
             reportError("7", exp->lineno, "Type mismatched for boolean expression");
@@ -582,7 +582,7 @@ void checkStmtType(ASTNode stmt) {
     }
 }
 
-void checkArgs(FieldList argList, ASTNode args) {
+void checkArgs(FieldList argList, ASTNode *args) {
     bool matched = true;
     assert(args);   // args->child == NULL if args is void
     if (args->child == NULL) {

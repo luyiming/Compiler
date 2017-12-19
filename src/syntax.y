@@ -9,7 +9,7 @@ void yyerror(char*);
 %}
 
 %locations
-%define api.value.type {ASTNode}
+%define api.value.type {ASTNode*}
 %destructor {
 #if YYDEBUG == 1
     printf("free %s at Line %d\n", ASTNodeTypeName[$$->type], @$.first_line);

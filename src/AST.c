@@ -5,7 +5,7 @@
 #include "AST.h"
 #include "semantic.h"
 
-ASTNode ASTroot = NULL;
+ASTNode *ASTroot = NULL;
 
 const char *const ASTNodeTypeName[] = {
     "INT",        "FLOAT",      "SEMI",
@@ -28,8 +28,8 @@ const char *const ASTNodeTypeName[] = {
     "Dec",        "Exp",        "Args"
 };
 
-ASTNode newASTNode(enum ASTNodeType type, int lineno) {
-    ASTNode p = (ASTNode )malloc(sizeof(struct ASTNode_));
+ASTNode *newASTNode(enum ASTNodeType type, int lineno) {
+    ASTNode *p = (ASTNode *)malloc(sizeof(ASTNode));
     p->child = p->sibling = p->parent = NULL;
     p->type = type;
     p->lineno = lineno;
@@ -38,18 +38,18 @@ ASTNode newASTNode(enum ASTNodeType type, int lineno) {
     return p;
 }
 
-int addASTNode(ASTNode parent, int count, ...) {
+int addASTNode(ASTNode *parent, int count, ...) {
     if (count < 1)
         return -1;
 
     va_list argp;
     va_start(argp, count);
 
-    ASTNode p, q;
-    parent->child = p = va_arg(argp, ASTNode);
+    ASTNode *p, *q;
+    parent->child = p = va_arg(argp, ASTNode *);
     p->parent = parent;
     for (int i = 1; i < count; i++) {
-        q = va_arg(argp, ASTNode);
+        q = va_arg(argp, ASTNode *);
         q->parent = parent;
         p->sibling = q;
         p = q;
@@ -59,7 +59,7 @@ int addASTNode(ASTNode parent, int count, ...) {
     return 0;
 }
 
-void ASTwalk(ASTNode parent, int indention) {
+void ASTwalk(ASTNode *parent, int indention) {
     if (parent == NULL)
         return;
 
@@ -92,16 +92,16 @@ void ASTwalk(ASTNode parent, int indention) {
         default : printf("\n");
     }
 
-    for (ASTNode p = parent->child; p != NULL; p = p->sibling) {
+    for (ASTNode *p = parent->child; p != NULL; p = p->sibling) {
         ASTwalk(p, indention + 1);
     }
 }
 
-void freeAST(ASTNode parent) {
+void freeAST(ASTNode *parent) {
     if (parent == NULL)
         return;
 
-    for (ASTNode p = parent->child; p != NULL; p = p->sibling) {
+    for (ASTNode *p = parent->child; p != NULL; p = p->sibling) {
         freeAST(p);
     }
 

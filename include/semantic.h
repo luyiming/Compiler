@@ -28,7 +28,7 @@ typedef struct Func_* Func;
 struct Func_ {
     Type retType;
     FieldList argList;
-    ASTNode definition;
+    ASTNode* definition;
     int lineno;
 };
 
@@ -43,7 +43,7 @@ struct SymbolList_ {
     SymbolList tail;
 };
 
-void        semantic_parse      (ASTNode ASTroot);
+void        semantic_parse      (ASTNode* ASTroot);
 
 Symbol      lookupSymbol        (char* name, bool checkUpperScope);
 Symbol      lookupType          (char* name, bool checkUpperScope);
@@ -52,30 +52,30 @@ int         insertSymbol        (Symbol sym);
 int         insertType          (Symbol sym);
 int         insertFunction      (Symbol sym);
 
-Type        getType             (ASTNode specifier);
-Type        buildStructType     (ASTNode structSpecifier);
-FieldList   buildFields         (FieldList structure, ASTNode defList);
+Type        getType             (ASTNode* specifier);
+Type        buildStructType     (ASTNode* structSpecifier);
+FieldList   buildFields         (FieldList structure, ASTNode* defList);
 int         addField            (FieldList structure, Field field);
 Field       getField            (FieldList structure, char *name);
-void        parseExtDecList     (Type type, ASTNode extDecList);
-void        parseDecList        (Type type, ASTNode decList);
-void        parseFunDec         (Type type, ASTNode funDec);
-Symbol      getSym4VarDec       (Type type, ASTNode varDec);
-Symbol      getSym4FunDec       (Type type, ASTNode funDec);
+void        parseExtDecList     (Type type, ASTNode* extDecList);
+void        parseDecList        (Type type, ASTNode* decList);
+void        parseFunDec         (Type type, ASTNode* funDec);
+Symbol      getSym4VarDec       (Type type, ASTNode* varDec);
+Symbol      getSym4FunDec       (Type type, ASTNode* funDec);
 
 /**
  * @note   When building args for function declaration, there is no need to
  *         insert args into symbol table
  */
-FieldList   buildArgs           (FieldList argList, ASTNode varList, bool addToSymbolTabel);
+FieldList   buildArgs           (FieldList argList, ASTNode* varList, bool addToSymbolTabel);
 
-bool        isLeftVal           (ASTNode exp);
+bool        isLeftVal           (ASTNode* exp);
 bool        typeEqual           (Type t1, Type t2);
 bool        structEqual         (FieldList st1, FieldList st2);
 bool        funcSignitureEqual  (Symbol func1, Symbol func2);
-Type        checkExpType        (ASTNode exp);
-void        checkStmtType       (ASTNode stmt);
-void        checkArgs           (FieldList argList, ASTNode args);
+Type        checkExpType        (ASTNode* exp);
+void        checkStmtType       (ASTNode* stmt);
+void        checkArgs           (FieldList argList, ASTNode* args);
 void        checkUndefinedFunc  ();
 
 void        enterScope          ();
