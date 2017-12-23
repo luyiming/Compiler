@@ -5,8 +5,8 @@
 #include "semantic.h"
 
 typedef struct {
-    //todo: add OP_ADDR,...
-    enum { OP_TEMP, OP_VARIABLE, OP_CONSTANT, OP_LABEL, OP_FUNCTION } kind;
+    //todo: add OP_DEREF
+    enum { OP_TEMP, OP_VARIABLE, OP_CONSTANT, OP_ADDR, OP_LABEL, OP_FUNCTION } kind;
     union {
         int var_id;
         int value;

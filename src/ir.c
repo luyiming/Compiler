@@ -122,8 +122,13 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
         codes->code.kind = IR_ASSIGN;
         codes->code.result.kind = OP_TEMP;
         codes->code.result.u.var_id = place;
-        codes->code.arg1.kind = OP_VARIABLE;
-        codes->code.arg1.symbol = lookupSymbol(Exp->child->val.c, true);
+        Symbol sym = lookupSymbol(Exp->child->val.c, true);
+        if (sym->u.type->kind == ARRAY) {
+            codes->code.arg1.kind = OP_ADDR;
+        } else {
+            codes->code.arg1.kind = OP_VARIABLE;
+        }
+        codes->code.arg1.symbol = sym;
     } else if(Exp->child->type == AST_FLOAT) {
         assert(0);
     } else if (Exp->child->sibling->type == AST_ASSIGNOP) { // Exp -> EXP ASSIGNOP Exp
@@ -732,6 +737,8 @@ static void printOperand(Operand op) {
         printf("%s", op.symbol->name);
     } else if (op.kind == OP_CONSTANT) {
         printf("#%d", op.u.value);
+    } else if (op.kind == OP_ADDR) {
+        printf("&%s", op.symbol->name);
     } else if (op.kind == OP_LABEL) {
         printf("label%d", op.u.label_id);
     } else {
