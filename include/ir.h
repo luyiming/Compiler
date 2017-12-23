@@ -71,6 +71,8 @@ InterCodes* genGotoCode(int label_id);
 
 enum RELOP_TYPE get_relop(ASTNode *RELOP);
 
+int getTypeSize(Type type);
+
 InterCodes* translate_Exp(ASTNode *Exp, int place);
 InterCodes* translate_Stmt(ASTNode *Stmt);
 InterCodes* translate_StmtList(ASTNode *StmtList);
@@ -80,6 +82,8 @@ InterCodes* translate_Args(ASTNode *Args, ArgNode** arg_list);
 InterCodes* translate_Program(ASTNode *Program);
 InterCodes* translate_ExtDefList(ASTNode *ExtDefList);
 InterCodes* translate_ExtDef(ASTNode *ExtDef);
+InterCodes* translate_ExtDecList(ASTNode *ExtDecList);
+InterCodes* translate_VarDec(ASTNode *VarDec);
 InterCodes* translate_FunDec(ASTNode *FunDec);
 InterCodes* translate_VarList(ASTNode *VarList);
 InterCodes* translate_ParamDec(ASTNode *ParamDec);

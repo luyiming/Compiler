@@ -445,14 +445,13 @@ InterCodes* translate_Dec(ASTNode *Dec) {
     assert(Dec);
     assert(Dec->type == AST_Dec);
 
-    InterCodes* codes;
+    InterCodes* codes = NULL;
 
-    if (Dec->child->child->sibling != NULL) {
-        assert(0);
-    }
-
-    if (Dec->child->sibling != NULL) { // Dec -> VarDec ASSIGNOP Exp
+    if (Dec->child->sibling == NULL) { // Dec -> VarDec
+        codes = translate_VarDec(Dec->child);
+    } else if (Dec->child->sibling != NULL) { // Dec -> VarDec ASSIGNOP Exp
         int t1 = newVariableId();
+        assert(Dec->child->child->type == AST_ID);
         Symbol variable = lookupSymbol(Dec->child->child->val.c, true);
         InterCodes* code1 = translate_Exp(Dec->child->sibling->sibling, t1);
 
@@ -464,7 +463,8 @@ InterCodes* translate_Dec(ASTNode *Dec) {
         code2->code.arg1.u.var_id = t1;
 
         codes = concatInterCodes(2, code1, code2);
-
+    } else {
+        assert(0);
     }
 
     return codes;
@@ -585,10 +585,74 @@ InterCodes* translate_ExtDef(ASTNode *ExtDef) {
         } else {
             assert(0);
         }
+    } else if (ExtDef->child->sibling->type == AST_ExtDecList) {
+        codes = translate_ExtDecList(ExtDef->child->sibling);
     }
 
     return codes;
 }
+
+InterCodes* translate_ExtDecList(ASTNode *ExtDecList) {
+    assert(ExtDecList);
+    assert(ExtDecList->type == AST_ExtDecList);
+
+    InterCodes* codes = NULL;
+
+    codes = translate_VarDec(ExtDecList->child);
+
+    if (ExtDecList->child->sibling != NULL) {
+        InterCodes* code2 = translate_ExtDecList(ExtDecList->child->sibling->sibling);
+        if (code2 != NULL) {
+            codes = concatInterCodes(2, codes, code2);
+        }
+    }
+
+    return codes;
+}
+
+int getTypeSize(Type type) {
+    if (type->kind == ARRAY) {
+        return type->u.array.size * getTypeSize(type->u.array.elem);
+    } else if (type->kind == STRUCTURE) {
+        int size = 0;
+        for (FieldList p = type->u.structure; p != NULL; p = p->tail) {
+            size += getTypeSize(p->type);
+        }
+        return size;
+    } else {
+        return 4;
+    }
+}
+
+InterCodes* translate_VarDec(ASTNode *VarDec) {
+    assert(VarDec);
+    assert(VarDec->type == AST_VarDec);
+
+    InterCodes* codes = NULL;
+
+    if (VarDec->child->type == AST_ID) {
+        Symbol variable = lookupSymbol(VarDec->child->val.c, true);
+        if (variable->kind == VAR_DEF) {
+            int size = getTypeSize(variable->u.type);
+            if (size > 4) {
+                codes = newInterCodes();
+                codes->code.kind = IR_DEC;
+                codes->code.result.kind = OP_VARIABLE;
+                codes->code.result.symbol = variable;
+                codes->code.size = size;
+            }
+        } else {
+            assert(0);
+        }
+    } else if (VarDec->child->type == AST_VarDec) {
+        codes = concatInterCodes(2, codes, translate_VarDec(VarDec->child));
+    } else {
+        assert(0);
+    }
+
+    return codes;
+}
+
 
 InterCodes* translate_FunDec(ASTNode *FunDec) {
     assert(FunDec);
@@ -730,6 +794,12 @@ void generate_ir(ASTNode* Program) {
                 printf(" GOTO ");
                 printOperand(p->code.result);
                 printf("\n");
+                break;
+            }
+            case IR_DEC: {
+                printf("DEC ");
+                printOperand(p->code.result);
+                printf(" %d\n", p->code.size);
                 break;
             }
             case IR_RETURN: {
