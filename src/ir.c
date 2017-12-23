@@ -199,7 +199,7 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
             codes = concatInterCodes(7, code1, code2, code3, code4, code5, code6, code7);
         }
         else {
-            assert(0);//todo: structure, array
+            assert(0);//todo: structure
         }
     } else if (Exp->child->sibling->type == AST_PLUS) { // Exp -> EXP PLUS Exp
         int t1 = newVariableId();
@@ -380,7 +380,7 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
         int t5 = place;
         InterCodes* code4 = newInterCodes();
         InterCodes* code5 = NULL;
-        if (Exp->expType->kind != ARRAY) {  // derefernce
+        if (Exp->expType->kind == BASIC) {  // derefernce
             t5 = newVariableId();
             code5 = newInterCodes();
             code5->code.kind = IR_DEREF_R;
@@ -399,8 +399,44 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
 
         codes = concatInterCodes(5, code1, code2, code3, code4, code5);
     }
+    else if (Exp->child->type == AST_Exp && Exp->child->sibling->type == AST_DOT) { //struct
+        char *name = Exp->child->sibling->sibling->val.c;
+        int t1 = newVariableId();
+        InterCodes* code1 = translate_Exp(Exp->child, t1);
+
+        assert(Exp->child->expType->kind == STRUCTURE);
+        FieldList field = Exp->child->expType->u.structure;
+        int offset = 0;
+        while (strcmp(field->name, name) != 0) {
+            offset += getTypeSize(field->type);
+            assert(field->tail != NULL);
+            field = field->tail;
+        }
+
+        int t2 = place;
+        InterCodes* code2 = newInterCodes();
+        InterCodes* code3 = NULL;
+        if (Exp->expType->kind == BASIC) {  // derefernce
+            t2 = newVariableId();
+            code3 = newInterCodes();
+            code3->code.kind = IR_DEREF_R;
+            code3->code.result.kind = OP_TEMP;
+            code3->code.result.u.var_id = place;
+            code3->code.arg1.kind = OP_TEMP;
+            code3->code.arg1.u.var_id = t2;
+        }
+        code2->code.kind = IR_ADD;
+        code2->code.result.kind = OP_TEMP;
+        code2->code.result.u.var_id = t2;
+        code2->code.arg1.kind = OP_TEMP;
+        code2->code.arg1.u.var_id = t1;
+        code2->code.arg2.kind = OP_CONSTANT;
+        code2->code.arg2.u.value = offset;
+
+        codes = concatInterCodes(3, code1, code2, code3);
+    }
     else {
-        assert(0);//todo: structure
+        assert(0);
     }
 
     return codes;
