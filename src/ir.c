@@ -290,7 +290,7 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
                     InterCodes* tmp_code = newInterCodes();
                     tmp_code->code.kind = IR_ARG;
                     tmp_code->code.result.kind = OP_TEMP;
-                    tmp_code->code.result.u.var_id = arg_list->var_id;
+                    tmp_code->code.result.u.var_id = p->var_id;
                     if (code2 == NULL) {
                         code2 = tmp_code;
                     } else {
