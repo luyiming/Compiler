@@ -7,15 +7,15 @@
 
 struct A {
     int x;
-    int y;
+    int y[3];
 };
 
 struct A c[2][2][2];
 
 int main() {
-    // int i = 1;
-    // int j = 2;
-    // int k = i + j * 2;
+    int i = 1;
+    int j = 2;
+    int k = i + j * 2;
     // k = read();
     // write(k);
 
@@ -32,7 +32,7 @@ int main() {
 
     // func(6, 7, 8);
 
-    int a[2][3];
-    int b[3][4];
-    return 2;
+    int a[2][3][4];
+    int b[2][7];
+    return a[1][1][1];
 }

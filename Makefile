@@ -10,13 +10,16 @@ parser: src/syntax.y src/lexical.l src/parser.c src/AST.c
 	bison src/syntax.y $(BFLAGS) -o out/syntax.tab.c
 	$(CC) out/syntax.tab.c src/parser.c $(CSOURCE) $(CFLAGS) -o $(PARSER)
 
-ir: src/gen_ir.c
+ir: src/gen_ir.c $(CSOURCE)
 	@mkdir -p out
 	flex -o out/lex.yy.c src/lexical.l
 	bison src/syntax.y $(BFLAGS) -o out/syntax.tab.c
 	$(CC) out/syntax.tab.c src/gen_ir.c $(CSOURCE) $(CFLAGS) -o out/ir
 
-TESTCASE := test/semantic_test/7-2.txt
+ir-test: 
+	out/ir $(TESTCASE)
+
+TESTCASE := test/ir/test1.c
 test: parser
 	$(PARSER) $(TESTCASE)
 

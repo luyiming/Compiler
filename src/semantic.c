@@ -150,15 +150,6 @@ Symbol getSym4VarDec(Type type, ASTNode *varDec) {
     Symbol sym = (Symbol)malloc(sizeof(struct SymbolList_));
     if (varDec->subtype == TYPE_ARRAY) {
         sym = getSym4VarDecArr(type, varDec->child, varDec->child->sibling->sibling->val.i);
-
-        // Symbol subSym = getSym4VarDec(type, varDec->child);
-        // Type arr = (Type)malloc(sizeof(struct Type_));
-        // arr->kind = ARRAY;
-        // arr->u.array.elem = subSym->u.type;
-        // arr->u.array.size = varDec->child->sibling->sibling->val.i;
-        // sym->kind = VAR_DEF;
-        // strcpy(sym->name, subSym->name);
-        // sym->u.type = arr;
     }
     else {
         sym->kind = VAR_DEF;
@@ -350,9 +341,7 @@ Type checkExpType(ASTNode *exp) {
                         if (idx_type->kind != BASIC || idx_type->u.basic != TYPE_INT) {
                             reportError("12", first->lineno, "Index is not an integer");
                         }
-                        printf("[DEBUG]%d\n", type->u.array.size);
                         type = type->u.array.elem;
-                        printf("[DEBUG2]%d\n", type->u.array.size);
                     }
                 }
             }

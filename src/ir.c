@@ -149,7 +149,7 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
             codes = concatInterCodes(3, code1, code2, code3);
         }
         else {
-            assert(0);
+            assert(0);//todo: structure, array
         }
     } else if (Exp->child->sibling->type == AST_PLUS) { // Exp -> EXP PLUS Exp
         int t1 = newVariableId();
@@ -310,8 +310,36 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
             }
         }
     }
+    else if (Exp->child->type == AST_Exp && Exp->child->sibling->type == AST_LB) { // array
+        int t1 = newVariableId();
+        int t2 = newVariableId();
+        InterCodes* code1 = translate_Exp(Exp->child, t1);
+        InterCodes* code2 = translate_Exp(Exp->child->sibling->sibling, t2);
+
+        int t3 = newVariableId();
+        InterCodes* code3 = newInterCodes();
+        code3->code.kind = IR_MUL;
+        code3->code.result.kind = OP_TEMP;
+        code3->code.result.u.var_id = t3;
+        code3->code.arg1.kind = OP_TEMP;
+        code3->code.arg1.u.var_id = t2;
+        code3->code.arg2.kind = OP_CONSTANT;
+        code3->code.arg2.u.value = getTypeSize(Exp->expType);
+
+        int t4 = newVariableId();
+        InterCodes* code4 = newInterCodes();
+        code4->code.kind = IR_ADD;
+        code4->code.result.kind = OP_TEMP;
+        code4->code.result.u.var_id = place;
+        code4->code.arg1.kind = OP_TEMP;
+        code4->code.arg1.u.var_id = t1;
+        code4->code.arg2.kind = OP_TEMP;
+        code4->code.arg2.u.var_id = t3;
+
+        codes = concatInterCodes(4, code1, code2, code3, code4);
+    }
     else {
-        assert(0);
+        assert(0);//todo: structure
     }
 
     return codes;
