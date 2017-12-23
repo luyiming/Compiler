@@ -377,7 +377,79 @@ InterCodes* translate_CompSt(ASTNode *CompSt) {
     assert(CompSt);
     assert(CompSt->type == AST_CompSt);
 
-    InterCodes* codes = translate_StmtList(CompSt->child->sibling->sibling);
+    InterCodes* code1 = translate_DefList(CompSt->child->sibling);
+    InterCodes* code2 = translate_StmtList(CompSt->child->sibling->sibling);
+
+    return concatInterCodes(2, code1, code2);
+}
+
+InterCodes* translate_DefList(ASTNode *DefList) {
+    assert(DefList);
+    assert(DefList->type == AST_DefList);
+
+    InterCodes* codes = NULL;
+
+    if (DefList->child != NULL) {
+        codes = translate_Def(DefList->child);
+        InterCodes* code2 = translate_DefList(DefList->child->sibling);
+        if (code2 != NULL) {
+            codes = concatInterCodes(2, codes, code2);
+        }
+    }
+
+    return codes;
+}
+
+InterCodes* translate_Def(ASTNode *Def) {
+    assert(Def);
+    assert(Def->type == AST_Def);
+
+    return translate_DecList(Def->child->sibling);
+}
+
+InterCodes* translate_DecList(ASTNode *DecList) {
+    assert(DecList);
+    assert(DecList->type == AST_DecList);
+
+    InterCodes* codes = NULL;
+
+    codes = translate_Dec(DecList->child);
+
+    if (DecList->child->sibling != NULL) {
+        InterCodes* code2 = translate_DecList(DecList->child->sibling->sibling);
+        if (code2 != NULL) {
+            codes = concatInterCodes(2, codes, code2);
+        }
+    }
+
+    return codes;
+}
+
+InterCodes* translate_Dec(ASTNode *Dec) {
+    assert(Dec);
+    assert(Dec->type == AST_Dec);
+
+    InterCodes* codes;
+
+    if (Dec->child->child->sibling != NULL) {
+        assert(0);
+    }
+
+    if (Dec->child->sibling != NULL) { // Dec -> VarDec ASSIGNOP Exp
+        int t1 = newVariableId();
+        Symbol variable = lookupSymbol(Dec->child->child->val.c, true);
+        InterCodes* code1 = translate_Exp(Dec->child->sibling->sibling, t1);
+
+        InterCodes* code2 = newInterCodes();
+        code2->code.kind = IR_ASSIGN;
+        code2->code.result.kind = OP_VARIABLE;
+        code2->code.result.symbol = variable;
+        code2->code.arg1.kind = OP_TEMP;
+        code2->code.arg1.u.var_id = t1;
+
+        codes = concatInterCodes(2, code1, code2);
+
+    }
 
     return codes;
 }

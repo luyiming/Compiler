@@ -30,6 +30,8 @@ int main(int argc, char **argv) {
 
     yyparse();
 
+    // ASTwalk(ASTroot, 0);
+
     initSymbolTabel();
 
     Symbol read_func = (Symbol)malloc(sizeof(struct SymbolList_));

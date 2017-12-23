@@ -84,6 +84,11 @@ InterCodes* translate_FunDec(ASTNode *FunDec);
 InterCodes* translate_VarList(ASTNode *VarList);
 InterCodes* translate_ParamDec(ASTNode *ParamDec);
 
+InterCodes* translate_DefList(ASTNode *DefList);
+InterCodes* translate_Def(ASTNode *Def);
+InterCodes* translate_DecList(ASTNode *DecList);
+InterCodes* translate_Dec(ASTNode *Dec);
+
 void generate_ir(ASTNode* Program);
 
 #endif  // __IR_H__
