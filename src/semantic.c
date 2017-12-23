@@ -149,19 +149,42 @@ void parseFunDec(Type type, ASTNode *funDec) {
 Symbol getSym4VarDec(Type type, ASTNode *varDec) {
     Symbol sym = (Symbol)malloc(sizeof(struct SymbolList_));
     if (varDec->subtype == TYPE_ARRAY) {
-        Symbol subSym = getSym4VarDec(type, varDec->child);
-        Type arr = (Type)malloc(sizeof(struct Type_));
-        arr->kind = ARRAY;
-        arr->u.array.elem = subSym->u.type;
-        arr->u.array.size = varDec->child->sibling->sibling->val.i;
-        sym->kind = VAR_DEF;
-        strcpy(sym->name, subSym->name);
-        sym->u.type = arr;
+        sym = getSym4VarDecArr(type, varDec->child, varDec->child->sibling->sibling->val.i);
+
+        // Symbol subSym = getSym4VarDec(type, varDec->child);
+        // Type arr = (Type)malloc(sizeof(struct Type_));
+        // arr->kind = ARRAY;
+        // arr->u.array.elem = subSym->u.type;
+        // arr->u.array.size = varDec->child->sibling->sibling->val.i;
+        // sym->kind = VAR_DEF;
+        // strcpy(sym->name, subSym->name);
+        // sym->u.type = arr;
     }
     else {
         sym->kind = VAR_DEF;
         strcpy(sym->name, varDec->child->val.c);
         sym->u.type = type;
+    }
+    return sym;
+}
+
+Symbol getSym4VarDecArr(Type type, ASTNode *varDec, int size) {
+    Symbol sym = (Symbol)malloc(sizeof(struct SymbolList_));
+    if (varDec->subtype == TYPE_ARRAY) {
+        Type arr = (Type)malloc(sizeof(struct Type_));
+        arr->kind = ARRAY;
+        arr->u.array.elem = type;
+        arr->u.array.size = size;
+        sym = getSym4VarDecArr(arr, varDec->child, varDec->child->sibling->sibling->val.i);
+    }
+    else {
+        Type arr = (Type)malloc(sizeof(struct Type_));
+        arr->kind = ARRAY;
+        arr->u.array.elem = type;
+        arr->u.array.size = size;
+        sym->kind = VAR_DEF;
+        strcpy(sym->name, varDec->child->val.c);
+        sym->u.type = arr;
     }
     return sym;
 }
@@ -327,7 +350,9 @@ Type checkExpType(ASTNode *exp) {
                         if (idx_type->kind != BASIC || idx_type->u.basic != TYPE_INT) {
                             reportError("12", first->lineno, "Index is not an integer");
                         }
+                        printf("[DEBUG]%d\n", type->u.array.size);
                         type = type->u.array.elem;
+                        printf("[DEBUG2]%d\n", type->u.array.size);
                     }
                 }
             }

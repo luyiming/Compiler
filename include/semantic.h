@@ -14,7 +14,7 @@ struct Type_ {
         enum { TYPE_INT, TYPE_FLOAT } basic;
         struct {
             Type elem;
-            int size;
+            int size;   // number of elements
         } array;
         FieldList structure;
     } u;
@@ -55,6 +55,7 @@ void        parseExtDecList     (Type type, ASTNode* extDecList);
 void        parseDecList        (Type type, ASTNode* decList);
 void        parseFunDec         (Type type, ASTNode* funDec);
 Symbol      getSym4VarDec       (Type type, ASTNode* varDec);
+Symbol      getSym4VarDecArr    (Type type, ASTNode* varDec, int size);
 Symbol      getSym4FunDec       (Type type, ASTNode* funDec);
 
 /**
