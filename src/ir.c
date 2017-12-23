@@ -123,7 +123,7 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
         codes->code.result.kind = OP_TEMP;
         codes->code.result.u.var_id = place;
         Symbol sym = lookupSymbol(Exp->child->val.c, true);
-        if (sym->u.type->kind == ARRAY) {
+        if (sym->u.type->kind != BASIC) {
             codes->code.arg1.kind = OP_ADDR;
         } else {
             codes->code.arg1.kind = OP_VARIABLE;
@@ -198,8 +198,51 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
 
             codes = concatInterCodes(7, code1, code2, code3, code4, code5, code6, code7);
         }
+        else if (Exp->child->child->subtype == STRUCT_USE) { // struct
+            char *name = Exp->child->child->sibling->sibling->val.c;
+            int t1 = newVariableId();
+            InterCodes* code1 = translate_Exp(Exp->child->child, t1);
+
+            assert(Exp->child->child->expType->kind == STRUCTURE);
+            FieldList field = Exp->child->child->expType->u.structure;
+            int offset = 0;
+            while (strcmp(field->name, name) != 0) {
+                offset += getTypeSize(field->type);
+                assert(field->tail != NULL);
+                field = field->tail;
+            }
+
+            int t2 = newVariableId();
+            InterCodes* code2 = newInterCodes();
+            code2->code.kind = IR_ADD;
+            code2->code.result.kind = OP_TEMP;
+            code2->code.result.u.var_id = t2;
+            code2->code.arg1.kind = OP_TEMP;
+            code2->code.arg1.u.var_id = t1;
+            code2->code.arg2.kind = OP_CONSTANT;
+            code2->code.arg2.u.value = offset;
+
+            int t3 = newVariableId();
+            InterCodes* code3 = translate_Exp(Exp->child->child->sibling->sibling, t3);
+
+            InterCodes* code4 = newInterCodes();
+            code4->code.kind = IR_DEREF_L;
+            code4->code.result.kind = OP_TEMP;
+            code4->code.result.u.var_id = t2;
+            code4->code.arg1.kind = OP_TEMP;
+            code4->code.arg1.u.var_id = t3;
+
+            InterCodes* code5 = newInterCodes();
+            code5->code.kind = IR_ASSIGN;
+            code5->code.result.kind = OP_TEMP;
+            code5->code.result.u.var_id = place;
+            code5->code.arg1.kind = OP_TEMP;
+            code5->code.arg1.u.var_id = t3;
+
+            codes = concatInterCodes(3, code1, code2, code3);
+        }
         else {
-            assert(0);//todo: structure
+            assert(0);
         }
     } else if (Exp->child->sibling->type == AST_PLUS) { // Exp -> EXP PLUS Exp
         int t1 = newVariableId();
