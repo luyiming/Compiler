@@ -2,6 +2,7 @@
 #define __SEMANTIC_H__ 1
 
 #include "common.h"
+#include "AST.h"
 
 #define MAX_NAME_SIZE 256
 
