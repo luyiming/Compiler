@@ -332,16 +332,27 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
         code3->code.arg2.u.value = getTypeSize(Exp->expType);
 
         int t4 = newVariableId();
+        int t5 = place;
         InterCodes* code4 = newInterCodes();
+        InterCodes* code5 = NULL;
+        if (Exp->expType->kind != ARRAY) {  // derefernce
+            t5 = newVariableId();
+            code5 = newInterCodes();
+            code5->code.kind = IR_DEREF_R;
+            code5->code.result.kind = OP_TEMP;
+            code5->code.result.u.var_id = place;
+            code5->code.arg1.kind = OP_TEMP;
+            code5->code.arg1.u.var_id = t5;
+        }
         code4->code.kind = IR_ADD;
         code4->code.result.kind = OP_TEMP;
-        code4->code.result.u.var_id = place;
+        code4->code.result.u.var_id = t5;
         code4->code.arg1.kind = OP_TEMP;
         code4->code.arg1.u.var_id = t1;
         code4->code.arg2.kind = OP_TEMP;
         code4->code.arg2.u.var_id = t3;
 
-        codes = concatInterCodes(4, code1, code2, code3, code4);
+        codes = concatInterCodes(5, code1, code2, code3, code4, code5);
     }
     else {
         assert(0);//todo: structure
@@ -871,6 +882,13 @@ void generate_ir(ASTNode* Program) {
             case IR_WRITE: {
                 printf("WRITE ");
                 printOperand(p->code.result);
+                printf("\n");
+                break;
+            }
+            case IR_DEREF_R: {
+                printOperand(p->code.result);
+                printf(" := *");
+                printOperand(p->code.arg1);
                 printf("\n");
                 break;
             }
