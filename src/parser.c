@@ -2,6 +2,8 @@
 #include "AST.h"
 #include "debug.h"
 #include "semantic.h"
+#include "sym_table.h"
+
 #if YYDEBUG == 1
   extern int yydebug;
 #endif
@@ -39,6 +41,9 @@ int main(int argc, char **argv)
     #endif
     }
   #endif
+
+    initSymbolTabel();
+
     semantic_parse(ASTroot);
 
     freeAST(ASTroot);

@@ -51,11 +51,11 @@ id      [_a-zA-Z][_a-zA-Z0-9]*
 %%
 
 {int}           { debug("INT");      yylval = newASTNode(AST_INT, yylloc.first_line);       yylval->val.i = str2i(yytext); return INT; }
-{float}         { debug("FLOAT");    yylval = newASTNode(AST_FLOAT, yylloc.first_line);     yylval->val.d = atof(yytext); return FLOAT; }
+{float}         { debug("FLOAT");    yylval = newASTNode(AST_FLOAT, yylloc.first_line);     yylval->val.d = atof(yytext);  return FLOAT; }
 ";"             { debug("SEMI");     yylval = newASTNode(AST_SEMI, yylloc.first_line);      return SEMI; }
 ","             { debug("COMMA");    yylval = newASTNode(AST_COMMA, yylloc.first_line);     return COMMA; }
 "="             { debug("ASSIGNOP"); yylval = newASTNode(AST_ASSIGNOP, yylloc.first_line);  return ASSIGNOP; }
-{relop}         { debug("RELOP");    yylval = newASTNode(AST_RELOP, yylloc.first_line);     return RELOP; }
+{relop}         { debug("RELOP");    yylval = newASTNode(AST_RELOP, yylloc.first_line);     strcpy(yylval->val.c, yytext); return RELOP; }
 "+"             { debug("PLUS");     yylval = newASTNode(AST_PLUS, yylloc.first_line);      return PLUS; }
 "-"             { debug("MINUS");    yylval = newASTNode(AST_MINUS, yylloc.first_line);     return MINUS; }
 "*"             { debug("STAR");     yylval = newASTNode(AST_STAR, yylloc.first_line);      return STAR; }

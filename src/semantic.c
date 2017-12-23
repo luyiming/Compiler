@@ -214,9 +214,6 @@ FieldList buildArgs(FieldList argList, ASTNode *varList, bool addToSymbolTabel) 
 
 void semantic_parse(ASTNode *parent) {
     if (parent == NULL) return;
-    if (parent->type == AST_Program) {
-        initSymbolTabel();
-    }
     if (parent->type > AST_Program && parent->child == NULL) return;
     // before
     switch (parent->type) {
