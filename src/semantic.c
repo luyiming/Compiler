@@ -282,7 +282,9 @@ void semantic_parse(ASTNode *parent) {
                     reportError("11", parent->lineno, "\"%s\" is not a function", parent->val.c);
                 }
                 else {
-                    checkArgs(func_sym->u.func->argList, parent->sibling->sibling);
+                    if (strcmp(func_sym->name, "read") != 0 && strcmp(func_sym->name, "write") != 0) {
+                        checkArgs(func_sym->u.func->argList, parent->sibling->sibling);
+                    }
                 }
             }
         }   break;

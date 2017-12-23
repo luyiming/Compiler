@@ -263,7 +263,7 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
             InterCodes* code1 = translate_Args(Exp->child->sibling->sibling, &arg_list);
             if (strcmp(func->name, "write") == 0) {
                 assert(arg_list);
-                assert(arg_list->next = NULL);
+                assert(arg_list->next == NULL);
                 InterCodes* code2 = newInterCodes();
                 code2->code.kind = IR_WRITE;
                 code2->code.result.kind = OP_TEMP;
