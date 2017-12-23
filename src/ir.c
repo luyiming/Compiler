@@ -38,17 +38,32 @@ static InterCodes* getInterCodesTail(InterCodes* head) {
 }
 
 InterCodes* concatInterCodes(int count, ...) {
+    // input can be:
+    //     NULL code1 code2 NULL NULL code3 ...
     if (count < 1) return NULL;
 
     va_list argp;
     va_start(argp, count);
 
     InterCodes *head, *tail, *p;
+    int i = 1;
     head = tail = va_arg(argp, InterCodes*);
 
-    for (int i = 1; i < count; i++) {
+    // find the first Not NULL value
+    while (head == NULL && i < count) {
+        head = tail = va_arg(argp, InterCodes*);
+        i++;
+    }
+    if (i >= count) return head;
+
+    assert(head);
+    assert(tail);
+    for (; i < count; i++) {
         p = va_arg(argp, InterCodes*);
+        if (p == NULL)
+            continue;
         tail = getInterCodesTail(tail);
+        assert(tail);
         tail->next = p;
         p->prev = tail;
     }
@@ -298,6 +313,7 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
     else {
         assert(0);
     }
+
     return codes;
 }
 
@@ -504,6 +520,7 @@ InterCodes* translate_Cond(ASTNode *Exp, int label_true, int label_false) {
 
         codes = concatInterCodes(3, code1, code2, genGotoCode(label_false));
     }
+    assert(codes);
     return codes;
 }
 
