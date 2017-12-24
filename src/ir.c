@@ -122,8 +122,13 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
         codes->code.kind = IR_ASSIGN;
         codes->code.result.kind = OP_TEMP;
         codes->code.result.u.var_id = place;
-        codes->code.arg1.kind = OP_VARIABLE;
-        codes->code.arg1.symbol = lookupSymbol(Exp->child->val.c, true);
+        Symbol sym = lookupSymbol(Exp->child->val.c, true);
+        // if (sym->u.type->kind != BASIC) {
+        //     codes->code.arg1.kind = OP_ADDR;
+        // } else {
+            codes->code.arg1.kind = OP_VARIABLE;
+        // }
+        codes->code.arg1.symbol = sym;
     } else if(Exp->child->type == AST_FLOAT) {
         assert(0);
     } else if (Exp->child->type == AST_LP) {  // Exp -> LP Exp RP
@@ -149,6 +154,94 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
             code3->code.arg1.symbol = variable;
 
             codes = concatInterCodes(3, code1, code2, code3);
+        }
+        else if (Exp->child->child->subtype == ARRAY_USE) { // array
+            int t1 = newVariableId();
+            int t2 = newVariableId();
+            InterCodes* code1 = translate_Exp(Exp->child->child, t1);
+            InterCodes* code2 = translate_Exp(Exp->child->child->sibling->sibling, t2);
+
+            int t3 = newVariableId();
+            InterCodes* code3 = newInterCodes();
+            code3->code.kind = IR_MUL;
+            code3->code.result.kind = OP_TEMP;
+            code3->code.result.u.var_id = t3;
+            code3->code.arg1.kind = OP_TEMP;
+            code3->code.arg1.u.var_id = t2;
+            code3->code.arg2.kind = OP_CONSTANT;
+            code3->code.arg2.u.value = getTypeSize(Exp->child->expType);
+
+            int t4 = newVariableId();
+            InterCodes* code4 = newInterCodes();        
+            code4->code.kind = IR_ADD;
+            code4->code.result.kind = OP_TEMP;
+            code4->code.result.u.var_id = t4;
+            code4->code.arg1.kind = OP_TEMP;
+            code4->code.arg1.u.var_id = t1;
+            code4->code.arg2.kind = OP_TEMP;
+            code4->code.arg2.u.var_id = t3;
+
+            int t5 = newVariableId();
+            InterCodes* code5 = translate_Exp(Exp->child->sibling->sibling, t5);
+            
+            InterCodes* code6 = newInterCodes();
+            code6->code.kind = IR_DEREF_L;
+            code6->code.result.kind = OP_TEMP;
+            code6->code.result.u.var_id = t4;
+            code6->code.arg1.kind = OP_TEMP;
+            code6->code.arg1.u.var_id = t5;
+
+            InterCodes* code7 = newInterCodes();
+            code7->code.kind = IR_ASSIGN;
+            code7->code.result.kind = OP_TEMP;
+            code7->code.result.u.var_id = place;
+            code7->code.arg1.kind = OP_TEMP;
+            code7->code.arg1.u.var_id = t5;
+
+            codes = concatInterCodes(7, code1, code2, code3, code4, code5, code6, code7);
+        }
+        else if (Exp->child->child->subtype == STRUCT_USE) { // struct
+            char *name = Exp->child->child->sibling->sibling->val.c;
+            int t1 = newVariableId();
+            InterCodes* code1 = translate_Exp(Exp->child->child, t1);
+
+            assert(Exp->child->child->expType->kind == STRUCTURE);
+            FieldList field = Exp->child->child->expType->u.structure;
+            int offset = 0;
+            while (strcmp(field->name, name) != 0) {
+                offset += getTypeSize(field->type);
+                assert(field->tail != NULL);
+                field = field->tail;
+            }
+
+            int t2 = newVariableId();
+            InterCodes* code2 = newInterCodes();
+            code2->code.kind = IR_ADD;
+            code2->code.result.kind = OP_TEMP;
+            code2->code.result.u.var_id = t2;
+            code2->code.arg1.kind = OP_TEMP;
+            code2->code.arg1.u.var_id = t1;
+            code2->code.arg2.kind = OP_CONSTANT;
+            code2->code.arg2.u.value = offset;
+
+            int t3 = newVariableId();
+            InterCodes* code3 = translate_Exp(Exp->child->sibling->sibling, t3);
+
+            InterCodes* code4 = newInterCodes();
+            code4->code.kind = IR_DEREF_L;
+            code4->code.result.kind = OP_TEMP;
+            code4->code.result.u.var_id = t2;
+            code4->code.arg1.kind = OP_TEMP;
+            code4->code.arg1.u.var_id = t3;
+
+            InterCodes* code5 = newInterCodes();
+            code5->code.kind = IR_ASSIGN;
+            code5->code.result.kind = OP_TEMP;
+            code5->code.result.u.var_id = place;
+            code5->code.arg1.kind = OP_TEMP;
+            code5->code.arg1.u.var_id = t3;
+
+            codes = concatInterCodes(5, code1, code2, code3, code4, code5);
         }
         else {
             assert(0);
@@ -312,7 +405,86 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
             }
         }
     }
+    else if (Exp->child->type == AST_LP) {
+        codes = translate_Exp(Exp->child->sibling, place);
+    }
+    else if (Exp->child->type == AST_Exp && Exp->child->sibling->type == AST_LB) { // array
+        int t1 = newVariableId();
+        int t2 = newVariableId();
+        InterCodes* code1 = translate_Exp(Exp->child, t1);
+        InterCodes* code2 = translate_Exp(Exp->child->sibling->sibling, t2);
+
+        int t3 = newVariableId();
+        InterCodes* code3 = newInterCodes();
+        code3->code.kind = IR_MUL;
+        code3->code.result.kind = OP_TEMP;
+        code3->code.result.u.var_id = t3;
+        code3->code.arg1.kind = OP_TEMP;
+        code3->code.arg1.u.var_id = t2;
+        code3->code.arg2.kind = OP_CONSTANT;
+        code3->code.arg2.u.value = getTypeSize(Exp->expType);
+
+        int t4 = newVariableId();
+        int t5 = place;
+        InterCodes* code4 = newInterCodes();
+        InterCodes* code5 = NULL;
+        if (Exp->expType->kind == BASIC) {  // derefernce
+            t5 = newVariableId();
+            code5 = newInterCodes();
+            code5->code.kind = IR_DEREF_R;
+            code5->code.result.kind = OP_TEMP;
+            code5->code.result.u.var_id = place;
+            code5->code.arg1.kind = OP_TEMP;
+            code5->code.arg1.u.var_id = t5;
+        }
+        code4->code.kind = IR_ADD;
+        code4->code.result.kind = OP_TEMP;
+        code4->code.result.u.var_id = t5;
+        code4->code.arg1.kind = OP_TEMP;
+        code4->code.arg1.u.var_id = t1;
+        code4->code.arg2.kind = OP_TEMP;
+        code4->code.arg2.u.var_id = t3;
+
+        codes = concatInterCodes(5, code1, code2, code3, code4, code5);
+    }
+    else if (Exp->child->type == AST_Exp && Exp->child->sibling->type == AST_DOT) { //struct
+        char *name = Exp->child->sibling->sibling->val.c;
+        int t1 = newVariableId();
+        InterCodes* code1 = translate_Exp(Exp->child, t1);
+
+        assert(Exp->child->expType->kind == STRUCTURE);
+        FieldList field = Exp->child->expType->u.structure;
+        int offset = 0;
+        while (strcmp(field->name, name) != 0) {
+            offset += getTypeSize(field->type);
+            assert(field->tail != NULL);
+            field = field->tail;
+        }
+
+        int t2 = place;
+        InterCodes* code2 = newInterCodes();
+        InterCodes* code3 = NULL;
+        if (Exp->expType->kind == BASIC) {  // derefernce
+            t2 = newVariableId();
+            code3 = newInterCodes();
+            code3->code.kind = IR_DEREF_R;
+            code3->code.result.kind = OP_TEMP;
+            code3->code.result.u.var_id = place;
+            code3->code.arg1.kind = OP_TEMP;
+            code3->code.arg1.u.var_id = t2;
+        }
+        code2->code.kind = IR_ADD;
+        code2->code.result.kind = OP_TEMP;
+        code2->code.result.u.var_id = t2;
+        code2->code.arg1.kind = OP_TEMP;
+        code2->code.arg1.u.var_id = t1;
+        code2->code.arg2.kind = OP_CONSTANT;
+        code2->code.arg2.u.value = offset;
+
+        codes = concatInterCodes(3, code1, code2, code3);
+    }
     else {
+        ASTwalk(Exp, 0);
         assert(0);
     }
 
@@ -637,11 +809,21 @@ InterCodes* translate_VarDec(ASTNode *VarDec) {
         if (variable->kind == VAR_DEF) {
             int size = getTypeSize(variable->u.type);
             if (size > 4) {
-                codes = newInterCodes();
-                codes->code.kind = IR_DEC;
-                codes->code.result.kind = OP_VARIABLE;
-                codes->code.result.symbol = variable;
-                codes->code.size = size;
+                int t1 = newVariableId();
+                InterCodes* code1 = newInterCodes();
+                code1->code.kind = IR_DEC;
+                code1->code.result.kind = OP_TEMP;
+                code1->code.result.u.var_id = t1;
+                code1->code.size = size;
+
+                InterCodes* code2 = newInterCodes();
+                code2->code.kind = IR_ADDR;
+                code2->code.result.kind = OP_VARIABLE;
+                code2->code.result.symbol = variable;
+                code2->code.arg1.kind = OP_TEMP;
+                code2->code.arg1.u.var_id = t1;
+
+                codes = concatInterCodes(2, code1, code2);
             }
         } else {
             assert(0);
@@ -689,7 +871,13 @@ InterCodes* translate_ParamDec(ASTNode *ParamDec) {
     assert(ParamDec);
     assert(ParamDec->type == AST_ParamDec);
 
-    Symbol variable = lookupSymbol(ParamDec->child->sibling->child->val.c, true);
+    ASTNode *varDec = ParamDec->child->sibling;
+    while (varDec->child->type != AST_ID) {
+        varDec = varDec->child;
+    }
+    char *name = varDec->child->val.c;
+    Symbol variable = lookupSymbol(name, true);
+    assert(variable);
 
     InterCodes* codes = newInterCodes();
     codes->code.kind = IR_PARAM;
@@ -706,6 +894,8 @@ static void printOperand(Operand op) {
         printf("%s", op.symbol->name);
     } else if (op.kind == OP_CONSTANT) {
         printf("#%d", op.u.value);
+    } else if (op.kind == OP_ADDR) {
+        printf("&%s", op.symbol->name);
     } else if (op.kind == OP_LABEL) {
         printf("label%d", op.u.label_id);
     } else {
@@ -838,6 +1028,28 @@ void generate_ir(ASTNode* Program) {
             case IR_WRITE: {
                 printf("WRITE ");
                 printOperand(p->code.result);
+                printf("\n");
+                break;
+            }
+            case IR_DEREF_R: {
+                printOperand(p->code.result);
+                printf(" := *");
+                printOperand(p->code.arg1);
+                printf("\n");
+                break;
+            }
+            case IR_DEREF_L: {
+                printf("*");
+                printOperand(p->code.result);
+                printf(" := ");
+                printOperand(p->code.arg1);
+                printf("\n");
+                break;
+            }
+            case IR_ADDR: {
+                printOperand(p->code.result);
+                printf(" = &");
+                printOperand(p->code.arg1);
                 printf("\n");
                 break;
             }
