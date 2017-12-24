@@ -123,11 +123,11 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
         codes->code.result.kind = OP_TEMP;
         codes->code.result.u.var_id = place;
         Symbol sym = lookupSymbol(Exp->child->val.c, true);
-        if (sym->u.type->kind != BASIC) {
-            codes->code.arg1.kind = OP_ADDR;
-        } else {
+        // if (sym->u.type->kind != BASIC) {
+        //     codes->code.arg1.kind = OP_ADDR;
+        // } else {
             codes->code.arg1.kind = OP_VARIABLE;
-        }
+        // }
         codes->code.arg1.symbol = sym;
     } else if(Exp->child->type == AST_FLOAT) {
         assert(0);
@@ -807,11 +807,21 @@ InterCodes* translate_VarDec(ASTNode *VarDec) {
         if (variable->kind == VAR_DEF) {
             int size = getTypeSize(variable->u.type);
             if (size > 4) {
-                codes = newInterCodes();
-                codes->code.kind = IR_DEC;
-                codes->code.result.kind = OP_VARIABLE;
-                codes->code.result.symbol = variable;
-                codes->code.size = size;
+                int t1 = newVariableId();
+                InterCodes* code1 = newInterCodes();
+                code1->code.kind = IR_DEC;
+                code1->code.result.kind = OP_TEMP;
+                code1->code.result.u.var_id = t1;
+                code1->code.size = size;
+
+                InterCodes* code2 = newInterCodes();
+                code2->code.kind = IR_ADDR;
+                code2->code.result.kind = OP_VARIABLE;
+                code2->code.result.symbol = variable;
+                code2->code.arg1.kind = OP_TEMP;
+                code2->code.arg1.u.var_id = t1;
+
+                codes = concatInterCodes(2, code1, code2);
             }
         } else {
             assert(0);
@@ -859,7 +869,13 @@ InterCodes* translate_ParamDec(ASTNode *ParamDec) {
     assert(ParamDec);
     assert(ParamDec->type == AST_ParamDec);
 
-    Symbol variable = lookupSymbol(ParamDec->child->sibling->child->val.c, true);
+    ASTNode *varDec = ParamDec->child->sibling;
+    while (varDec->child->type != AST_ID) {
+        varDec = varDec->child;
+    }
+    char *name = varDec->child->val.c;
+    Symbol variable = lookupSymbol(name, true);
+    assert(variable);
 
     InterCodes* codes = newInterCodes();
     codes->code.kind = IR_PARAM;
@@ -1024,6 +1040,13 @@ void generate_ir(ASTNode* Program) {
                 printf("*");
                 printOperand(p->code.result);
                 printf(" := ");
+                printOperand(p->code.arg1);
+                printf("\n");
+                break;
+            }
+            case IR_ADDR: {
+                printOperand(p->code.result);
+                printf(" = &");
                 printOperand(p->code.arg1);
                 printf("\n");
                 break;
