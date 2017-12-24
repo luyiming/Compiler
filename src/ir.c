@@ -1041,7 +1041,7 @@ void generate_ir(ASTNode* Program) {
             }
             case IR_ADDR: {
                 printOperand(p->code.result);
-                printf(" = &");
+                printf(" := &");
                 printOperand(p->code.arg1);
                 printf("\n");
                 break;

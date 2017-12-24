@@ -1,0 +1,13 @@
+FUNCTION main :
+READ _$_x
+a := #1
+b := #2
+c := a + b
+d := CALL f
+WRITE d
+RETURN c
+
+FUNCTION f :
+e := #1
+a := #10
+RETURN #10
