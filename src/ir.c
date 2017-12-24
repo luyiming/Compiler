@@ -133,7 +133,7 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
         assert(0);
     } else if (Exp->child->type == AST_LP) {  // Exp -> LP Exp RP
         codes = translate_Exp(Exp->child->sibling, place);
-    } else if (Exp->child->sibling->type == AST_ASSIGNOP) { // Exp -> EXP ASSIGNOP Exp
+    } else if (Exp->child->sibling->type == AST_ASSIGNOP) { // Exp -> EXP1 ASSIGNOP Exp2
         if (Exp->child->child->type == AST_ID) { // Exp1 -> ID
             Symbol variable = lookupSymbol(Exp->child->child->val.c, true);
             int t1 = newVariableId();
@@ -155,7 +155,7 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
 
             codes = concatInterCodes(3, code1, code2, code3);
         }
-        else if (Exp->child->child->subtype == ARRAY_USE) { // array
+        else if (Exp->child->child->subtype == ARRAY_USE) { // Exp1 -> Exp LB Exp RB   i.e. Exp1 is array
             int t1 = newVariableId();
             int t2 = newVariableId();
             InterCodes* code1 = translate_Exp(Exp->child->child, t1);
@@ -200,7 +200,7 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
 
             codes = concatInterCodes(7, code1, code2, code3, code4, code5, code6, code7);
         }
-        else if (Exp->child->child->subtype == STRUCT_USE) { // struct
+        else if (Exp->child->child->subtype == STRUCT_USE) { // Exp1 -> Exp DOT Exp   i.e. Exp1 is struct
             char *name = Exp->child->child->sibling->sibling->val.c;
             int t1 = newVariableId();
             InterCodes* code1 = translate_Exp(Exp->child->child, t1);
@@ -404,7 +404,7 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
                 // TODO: dealloc arg_list
             }
         }
-    } else if (Exp->child->type == AST_Exp && Exp->child->sibling->type == AST_LB) { // array
+    } else if (Exp->child->type == AST_Exp && Exp->child->sibling->type == AST_LB) { // Exp -> Exp LB Exp RB
         int t1 = newVariableId();
         int t2 = newVariableId();
         InterCodes* code1 = translate_Exp(Exp->child, t1);
@@ -442,8 +442,7 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
         code4->code.arg2.u.var_id = t3;
 
         codes = concatInterCodes(5, code1, code2, code3, code4, code5);
-    }
-    else if (Exp->child->type == AST_Exp && Exp->child->sibling->type == AST_DOT) { //struct
+    } else if (Exp->child->type == AST_Exp && Exp->child->sibling->type == AST_DOT) { // Exp -> Exp DOT Exp
         char *name = Exp->child->sibling->sibling->val.c;
         int t1 = newVariableId();
         InterCodes* code1 = translate_Exp(Exp->child, t1);
@@ -478,8 +477,7 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
         code2->code.arg2.u.value = offset;
 
         codes = concatInterCodes(3, code1, code2, code3);
-    }
-    else {
+    } else {
         ASTwalk(Exp, 0);
         assert(0);
     }
@@ -832,7 +830,6 @@ InterCodes* translate_VarDec(ASTNode *VarDec) {
 
     return codes;
 }
-
 
 InterCodes* translate_FunDec(ASTNode *FunDec) {
     assert(FunDec);

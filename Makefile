@@ -2,32 +2,29 @@ CC := gcc
 CFLAGS := -lfl -ly -I./include -std=gnu11 -g
 CSOURCE := src/AST.c src/semantic.c src/common.c src/rb_tree.c src/sym_table.c src/ir.c
 BFLAGS := -d -v --locations
-PARSER := out/parser
 
-parser: src/syntax.y src/lexical.l src/parser.c src/AST.c
+parser: ir
+
+semantic_check:
 	@mkdir -p out
 	flex -o out/lex.yy.c src/lexical.l
 	bison src/syntax.y $(BFLAGS) -o out/syntax.tab.c
-	$(CC) out/syntax.tab.c src/parser.c $(CSOURCE) $(CFLAGS) -o $(PARSER)
+	$(CC) -D ENABLE_NESTED_SCOPE out/syntax.tab.c src/semantic_check.c $(CSOURCE) $(CFLAGS) -o out/semantic_check
 
-ir: src/gen_ir.c $(CSOURCE)
+gen_ir:
 	@mkdir -p out
 	flex -o out/lex.yy.c src/lexical.l
 	bison src/syntax.y $(BFLAGS) -o out/syntax.tab.c
-	$(CC) out/syntax.tab.c src/gen_ir.c $(CSOURCE) $(CFLAGS) -o out/ir
+	$(CC) out/syntax.tab.c src/gen_ir.c $(CSOURCE) $(CFLAGS) -o out/gen_ir
 
-ir-test: 
-	out/ir $(TESTCASE)
 
-TESTCASE := test/ir/testcase4.txt
-test: parser
-	$(PARSER) $(TESTCASE)
+testall: test_semantic_check test_gen_ir
 
-test-gcc:
-	gcc -x c $(TESTCASE) > /dev/null
+test_semantic_check: semantic_check
+	@python3 test.py out/semantic_check test/semantic_test
 
-testall: parser
-	@python3 test.py $(PARSER) test/semantic_test
+test_gen_ir: gen_ir
+
 
 clean:
 	@$(RM) -r out

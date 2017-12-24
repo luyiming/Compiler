@@ -1,13 +1,13 @@
 #ifndef __DEBUG_H__
 #define __DEBUG_H__ 1
 /* uncomment next line for debug mode */
-// #define YYDEBUG 1
+// #define YYDEBUG
 
-// #define LEXDEBUG 1
+// #define LEXDEBUG
 
-// #define PRINT_AST 1
+// #define PRINT_AST
 
-// #define ERROR_AST 1
+// #define ERROR_AST
 
 #include <stdio.h>
 #include <assert.h>

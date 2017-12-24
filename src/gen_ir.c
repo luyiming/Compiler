@@ -5,7 +5,7 @@
 #include "ir.h"
 #include "sym_table.h"
 
-#if YYDEBUG == 1
+#ifdef YYDEBUG
 extern int yydebug;
 #endif
 
@@ -17,14 +17,21 @@ extern ASTNode *ASTroot;
 
 int main(int argc, char **argv) {
     if (argc < 2) return 1;
+
     FILE *fin = fopen(argv[1], "r");
+    FILE *fout = NULL;
     if (!fin) {
         perror(argv[1]);
         return 1;
     }
+
+    if (argc == 3) {
+        fout = freopen(argv[2], "w", stdout);
+    }
+
     yyrestart(fin);
 
-#if YYDEBUG == 1
+#ifdef YYDEBUG
     yydebug = 1;
 #endif
 
@@ -53,6 +60,11 @@ int main(int argc, char **argv) {
     generate_ir(ASTroot);
 
     freeAST(ASTroot);
+
+    fclose(fin);
+    if (argc == 3) {
+        fclose(fout);
+    }
 
     return 0;
 }
