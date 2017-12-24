@@ -883,7 +883,9 @@ InterCodes* translate_ParamDec(ASTNode *ParamDec) {
 static void printOperand(Operand op) {
     if (op.kind == OP_TEMP) {
         printf("t%d", op.u.var_id);
-    } else if (op.kind == OP_VARIABLE || op.kind == OP_FUNCTION) {
+    } else if (op.kind == OP_VARIABLE) {
+        printf("v_%s", op.symbol->name);
+    } else if (op.kind == OP_FUNCTION) {
         printf("%s", op.symbol->name);
     } else if (op.kind == OP_CONSTANT) {
         printf("#%d", op.u.value);
