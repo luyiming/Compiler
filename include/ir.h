@@ -5,8 +5,7 @@
 #include "semantic.h"
 
 typedef struct {
-    //todo: add OP_DEREF
-    enum { OP_TEMP, OP_VARIABLE, OP_CONSTANT, OP_ADDR, OP_LABEL, OP_FUNCTION } kind;
+    enum { OP_TEMP, OP_VARIABLE, OP_CONSTANT, OP_LABEL, OP_FUNCTION } kind;
     union {
         int var_id;
         int value;
@@ -66,6 +65,7 @@ struct ArgNode_ {
 typedef struct ArgNode_ ArgNode;
 
 InterCodes* concatInterCodes(int count, ...);
+InterCodes* deleteInterCode(InterCodes *head, InterCodes *del);
 
 InterCodes* genLabelCode(int label_id);
 InterCodes* genGotoCode(int label_id);
@@ -95,6 +95,8 @@ InterCodes* translate_DecList(ASTNode *DecList);
 InterCodes* translate_Dec(ASTNode *Dec);
 
 void generate_ir(ASTNode* Program);
+
+InterCodes* optmize_copyPropagation(InterCodes* inCodes);
 
 #define LABEL_FALL 0
 
