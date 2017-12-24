@@ -107,6 +107,18 @@ enum RELOP_TYPE get_relop(ASTNode *RELOP) {
     }
 }
 
+enum RELOP_TYPE get_reverse_relop(enum RELOP_TYPE relop) {
+    switch (relop) {
+        case RELOP_LT: return RELOP_GE;
+        case RELOP_LE: return RELOP_GT;
+        case RELOP_EQ: return RELOP_NE;
+        case RELOP_GT: return RELOP_LE;
+        case RELOP_GE: return RELOP_LT;
+        case RELOP_NE: return RELOP_EQ;
+        default: assert(0);
+    }
+}
+
 InterCodes* translate_Exp(ASTNode* Exp, int place) {
     assert(Exp);
     assert(Exp->type == AST_Exp);
@@ -507,30 +519,29 @@ InterCodes* translate_Stmt(ASTNode *Stmt) {
         codes = concatInterCodes(2, code1, code2);
     } else if (Stmt->child->type == AST_WHILE) { // Stmt -> WHILE LP Exp RP Stmt
         int label1 = newLabelId();
-        int label2 = newLabelId();
+        int label2 = LABEL_FALL;    
         int label3 = newLabelId();
 
         InterCodes* code1 = translate_Cond(Stmt->child->sibling->sibling, label2, label3);
         InterCodes* code2 = translate_Stmt(Stmt->child->sibling->sibling->sibling->sibling);
 
-        codes = concatInterCodes(6, genLabelCode(label1), code1, genLabelCode(label2),
+        codes = concatInterCodes(5, genLabelCode(label1), code1,
                                     code2, genGotoCode(label1), genLabelCode(label3));
     } else if (Stmt->child->type == AST_IF) {
         if (Stmt->child->sibling->sibling->sibling->sibling->sibling == NULL) { // Stmt -> IF LP Exp RP Stmt
-            int label1 = newLabelId();
+            int label1 = LABEL_FALL;
             int label2 = newLabelId();
             InterCodes* code1 = translate_Cond(Stmt->child->sibling->sibling, label1, label2);
             InterCodes* code2 = translate_Stmt(Stmt->child->sibling->sibling->sibling->sibling);
-            codes = concatInterCodes(4, code1, genLabelCode(label1), code2, genLabelCode(label2));
+            codes = concatInterCodes(3, code1, code2, genLabelCode(label2));
         } else { // IF LP Exp RP Stmt ELSE Stmt
-            int label1 = newLabelId();
+            int label1 = LABEL_FALL;
             int label2 = newLabelId();
             int label3 = newLabelId();
             InterCodes* code1 = translate_Cond(Stmt->child->sibling->sibling, label1, label2);
             InterCodes* code2 = translate_Stmt(Stmt->child->sibling->sibling->sibling->sibling);
             InterCodes* code3 = translate_Stmt(Stmt->child->sibling->sibling->sibling->sibling->sibling->sibling);
-            codes = concatInterCodes(7, code1, genLabelCode(label1), code2,
-                                        genGotoCode(label3), genLabelCode(label2),
+            codes = concatInterCodes(6, code1, code2, genGotoCode(label3), genLabelCode(label2),
                                         code3, genLabelCode(label3));
         }
     } else {
@@ -651,27 +662,77 @@ InterCodes* translate_Cond(ASTNode *Exp, int label_true, int label_false) {
         InterCodes* code1 = translate_Exp(Exp->child, t1);
         InterCodes* code2 = translate_Exp(Exp->child->sibling->sibling, t2);
 
-        InterCodes* code3 = newInterCodes();
-        code3->code.kind = IR_RELOP;
-        code3->code.relop = get_relop(Exp->child->sibling);
-        code3->code.result.kind = OP_LABEL;
-        code3->code.result.u.label_id = label_true;
-        code3->code.arg1.kind = OP_TEMP;
-        code3->code.arg1.u.var_id = t1;
-        code3->code.arg2.kind = OP_TEMP;
-        code3->code.arg2.u.var_id = t2;
+        if (label_true != LABEL_FALL && label_false != LABEL_FALL) {
+            InterCodes* code3 = newInterCodes();
+            code3->code.kind = IR_RELOP;
+            code3->code.relop = get_relop(Exp->child->sibling);
+            code3->code.result.kind = OP_LABEL;
+            code3->code.result.u.label_id = label_true;
+            code3->code.arg1.kind = OP_TEMP;
+            code3->code.arg1.u.var_id = t1;
+            code3->code.arg2.kind = OP_TEMP;
+            code3->code.arg2.u.var_id = t2;
 
-        codes = concatInterCodes(4, code1, code2, code3, genGotoCode(label_false));
+            codes = concatInterCodes(4, code1, code2, code3, genGotoCode(label_false));
+        } else if (label_true != LABEL_FALL) {
+            InterCodes* code3 = newInterCodes();
+            code3->code.kind = IR_RELOP;
+            code3->code.relop = get_relop(Exp->child->sibling);
+            code3->code.result.kind = OP_LABEL;
+            code3->code.result.u.label_id = label_true;
+            code3->code.arg1.kind = OP_TEMP;
+            code3->code.arg1.u.var_id = t1;
+            code3->code.arg2.kind = OP_TEMP;
+            code3->code.arg2.u.var_id = t2;
+
+            codes = concatInterCodes(3, code1, code2, code3);
+        } else if (label_false != LABEL_FALL) {
+            InterCodes* code3 = newInterCodes();
+            code3->code.kind = IR_RELOP;
+            code3->code.relop = get_reverse_relop(get_relop(Exp->child->sibling));
+            code3->code.result.kind = OP_LABEL;
+            code3->code.result.u.label_id = label_false;
+            code3->code.arg1.kind = OP_TEMP;
+            code3->code.arg1.u.var_id = t1;
+            code3->code.arg2.kind = OP_TEMP;
+            code3->code.arg2.u.var_id = t2;
+
+            codes = concatInterCodes(3, code1, code2, code3);
+        } else {
+            codes = concatInterCodes(2, code1, code2);
+        }
     } else if (Exp->child->sibling->type == AST_AND) { // Exp AND Exp
-        int label1 = newLabelId();
-        InterCodes* code1 = translate_Cond(Exp->child, label1, label_false);
+        int label_Exp1_false;
+        if (label_false != LABEL_FALL) {
+            label_Exp1_false = label_false;
+        } else {
+            label_Exp1_false = newLabelId();
+        }
+
+        InterCodes* code1 = translate_Cond(Exp->child, LABEL_FALL, label_Exp1_false);
         InterCodes* code2 = translate_Cond(Exp->child->sibling->sibling, label_true, label_false);
-        codes = concatInterCodes(3, code1, genLabelCode(label1), code2);
+
+        if (label_false != LABEL_FALL) {
+            codes = concatInterCodes(2, code1, code2);
+        } else {
+            codes = concatInterCodes(3, code1, code2, genLabelCode(label_Exp1_false));
+        }
     } else if (Exp->child->sibling->type == AST_OR) { // Exp OR Exp
-        int label1 = newLabelId();
-        InterCodes* code1 = translate_Cond(Exp->child, label_true, label1);
+        int label_Exp1_true;
+        if (label_true != LABEL_FALL) {
+            label_Exp1_true = label_true;
+        } else {
+            label_Exp1_true = newLabelId();
+        }
+
+        InterCodes* code1 = translate_Cond(Exp->child, label_Exp1_true, LABEL_FALL);
         InterCodes* code2 = translate_Cond(Exp->child->sibling->sibling, label_true, label_false);
-        codes = concatInterCodes(3, code1, genLabelCode(label1), code2);
+
+        if (label_true != LABEL_FALL) {
+            codes = concatInterCodes(2, code1, code2);
+        } else {
+            codes = concatInterCodes(3, code1, code2, genLabelCode(label_Exp1_true));
+        }
     } else {
         int t1 = newVariableId();
         InterCodes* code1 = translate_Exp(Exp, t1);

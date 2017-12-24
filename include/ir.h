@@ -96,4 +96,6 @@ InterCodes* translate_Dec(ASTNode *Dec);
 
 void generate_ir(ASTNode* Program);
 
+#define LABEL_FALL 0
+
 #endif  // __IR_H__
