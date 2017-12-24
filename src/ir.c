@@ -223,7 +223,7 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
             code2->code.arg2.u.value = offset;
 
             int t3 = newVariableId();
-            InterCodes* code3 = translate_Exp(Exp->child->child->sibling->sibling, t3);
+            InterCodes* code3 = translate_Exp(Exp->child->sibling->sibling, t3);
 
             InterCodes* code4 = newInterCodes();
             code4->code.kind = IR_DEREF_L;
@@ -239,7 +239,7 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
             code5->code.arg1.kind = OP_TEMP;
             code5->code.arg1.u.var_id = t3;
 
-            codes = concatInterCodes(3, code1, code2, code3);
+            codes = concatInterCodes(5, code1, code2, code3, code4, code5);
         }
         else {
             assert(0);
@@ -403,6 +403,9 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
             }
         }
     }
+    else if (Exp->child->type == AST_LP) {
+        codes = translate_Exp(Exp->child->sibling, place);
+    }
     else if (Exp->child->type == AST_Exp && Exp->child->sibling->type == AST_LB) { // array
         int t1 = newVariableId();
         int t2 = newVariableId();
@@ -479,6 +482,7 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
         codes = concatInterCodes(3, code1, code2, code3);
     }
     else {
+        ASTwalk(Exp, 0);
         assert(0);
     }
 
