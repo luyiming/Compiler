@@ -1336,6 +1336,14 @@ InterCodes* optimize_one_run(InterCodes* codes, bool *changed) {
         }
     }
 
+    // optimize zero addtion: t32 := v_r + #0 -> t32 := v_r
+    for (InterCodes *p = codes; p != NULL; p = p->next) {
+        if (p->code.kind == IR_ADD && p->code.arg2.kind == OP_CONSTANT && p->code.arg2.u.value == 0) {
+            *changed = true;
+            p->code.kind = IR_ASSIGN;
+        }
+    }
+
     // remove dead code
     struct GenNode dead_codes;
     dead_codes.size = 0;
