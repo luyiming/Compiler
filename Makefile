@@ -19,7 +19,7 @@ ir: src/gen_ir.c $(CSOURCE)
 ir-test: 
 	out/ir $(TESTCASE)
 
-TESTCASE := test/ir/test1.c
+TESTCASE := test/ir/testcase4.txt
 test: parser
 	$(PARSER) $(TESTCASE)
 
