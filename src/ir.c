@@ -1184,6 +1184,8 @@ InterCodes* optmize_copyPropagation(InterCodes* inCodes) {
         }
     }
     return outCodes;
+}
+
 void peek_basic_block(InterCodes* codes, InterCodes** start_, InterCodes** end_) {
     InterCodes *start, *end;
     for(start = codes; start != NULL; start = start->next) {
