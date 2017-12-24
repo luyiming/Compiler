@@ -1119,7 +1119,7 @@ void peek_basic_block(InterCodes* codes, InterCodes** start_, InterCodes** end_)
     for(start = codes; start != NULL; start = start->next) {
         if (start->code.kind == IR_ASSIGN || start->code.kind == IR_ADD || 
             start->code.kind == IR_SUB  || start->code.kind == IR_MUL ||
-            start->code.kind == IR_DIV) {
+            start->code.kind == IR_DIV || start->code.kind == IR_ARG) {
                 break;
             }
     }
@@ -1127,9 +1127,9 @@ void peek_basic_block(InterCodes* codes, InterCodes** start_, InterCodes** end_)
     for(end = start; end != NULL; end = end->next) {
         if (end->code.kind != IR_ASSIGN && end->code.kind != IR_ADD && 
             end->code.kind != IR_SUB  && end->code.kind != IR_MUL &&
-            end->code.kind != IR_DIV) {
-                if (end->code.kind == IR_RELOP || end->code.kind == IR_RETURN)
-                    end = end->next;
+            end->code.kind != IR_DIV && end->code.kind != IR_ARG &&
+            end->code.kind != IR_DEREF_L && end->code.kind != IR_DEREF_R && end->code.kind != IR_ADDR) {
+                end = end->next;
                 break;
             }
     }
@@ -1158,7 +1158,7 @@ InterCodes* optimize_one_run(InterCodes* codes, bool *changed) {
     *changed = false;
     InterCodes *start, *end = codes;
     while (end != NULL) {
-        peek_basic_block(end->next, &start, &end);
+        peek_basic_block(end, &start, &end);
         struct GenNode gens;
         gens.size = 0;
         for (InterCodes *p = start; p != end; p = p->next) {
@@ -1181,8 +1181,31 @@ InterCodes* optimize_one_run(InterCodes* codes, bool *changed) {
                 // add new gen
                 gens.gen[gens.size] = p;
                 gens.size++;
-            }
-            else if (p->code.kind == IR_ADD || p->code.kind == IR_SUB ||
+            } else if (p->code.kind == IR_ADDR || p->code.kind == IR_DEREF_R) {
+                // replace
+                for (int i = 0; i < gens.size; i++) {
+                   if (isOperandEqual(p->code.arg1, gens.gen[i]->code.result)) {
+                       p->code.arg1 = gens.gen[i]->code.arg1;
+                       *changed = true;
+                   }
+                }
+
+                // kill all previous gen
+                for (int i = 0; i < gens.size; i++) {
+                   if (isOperandEqual(p->code.result, gens.gen[i]->code.result)) {
+                       gens.gen[i] = gens.gen[gens.size - 1];
+                       (gens.size)--;
+                   }
+                }
+            } else if (p->code.kind == IR_DEREF_L) {
+                // replace
+                for (int i = 0; i < gens.size; i++) {
+                   if (isOperandEqual(p->code.arg1, gens.gen[i]->code.result)) {
+                       p->code.arg1 = gens.gen[i]->code.arg1;
+                       *changed = true;
+                   }
+                }
+            } else if (p->code.kind == IR_ADD || p->code.kind == IR_SUB ||
                         p->code.kind == IR_MUL || p->code.kind == IR_DIV || p->code.kind == IR_RELOP) {
                 // replace
                 for (int i = 0; i < gens.size; i++) {
@@ -1203,21 +1226,12 @@ InterCodes* optimize_one_run(InterCodes* codes, bool *changed) {
                        (gens.size)--;
                    }
                 }
-            }
-            else if (p->code.kind == IR_RETURN) {
+            } else if (p->code.kind == IR_RETURN || p->code.kind == IR_ARG) {
                 // replace
                 for (int i = 0; i < gens.size; i++) {
                    if (isOperandEqual(p->code.result, gens.gen[i]->code.result)) {
                        p->code.result = gens.gen[i]->code.arg1;
                        *changed = true;
-                   }
-                }
-
-                // kill all previous gen
-                for (int i = 0; i < gens.size; i++) {
-                   if (isOperandEqual(p->code.result, gens.gen[i]->code.result)) {
-                       gens.gen[i] = gens.gen[gens.size - 1];
-                       (gens.size)--;
                    }
                 }
             }
