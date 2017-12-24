@@ -126,6 +126,8 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
         codes->code.arg1.symbol = lookupSymbol(Exp->child->val.c, true);
     } else if(Exp->child->type == AST_FLOAT) {
         assert(0);
+    } else if (Exp->child->type == AST_LP) {  // Exp -> LP Exp RP
+        codes = translate_Exp(Exp->child->sibling, place);
     } else if (Exp->child->sibling->type == AST_ASSIGNOP) { // Exp -> EXP ASSIGNOP Exp
         if (Exp->child->child->type == AST_ID) { // Exp1 -> ID
             Symbol variable = lookupSymbol(Exp->child->child->val.c, true);
@@ -645,7 +647,7 @@ InterCodes* translate_VarDec(ASTNode *VarDec) {
             assert(0);
         }
     } else if (VarDec->child->type == AST_VarDec) {
-        codes = concatInterCodes(2, codes, translate_VarDec(VarDec->child));
+        codes = translate_VarDec(VarDec->child);
     } else {
         assert(0);
     }
