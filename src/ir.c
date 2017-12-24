@@ -1122,6 +1122,13 @@ void generate_ir(ASTNode* Program) {
                 printf("\n");
                 break;
             }
+            case IR_ADDR: {
+                printOperand(p->code.result);
+                printf(" := &");
+                printOperand(p->code.arg1);
+                printf("\n");
+                break;
+            }
             default: assert(0);
         }
     }
@@ -1136,6 +1143,15 @@ InterCodes* optmize_copyPropagation(InterCodes* inCodes) {
         InterCodes* p = outCodes, *assign;
         // 找到仅被赋值一次的临时变量
         while (p != NULL) {
+            if ((p->code.kind == IR_ADD || p->code.kind == IR_SUB
+            || p->code.kind == IR_MUL || p->code.kind == IR_DIV
+            || p->code.kind == IR_ADDR || p->code.kind == IR_DEREF_L
+            || p->code.kind == IR_CALL || p->code.kind == IR_READ
+            ) && p->code.result.kind == OP_TEMP && p->code.result.u.var_id == i) {
+                cntAssign = 2;
+                break;
+            }
+
             if (p->code.kind == IR_ASSIGN && p->code.result.kind == OP_TEMP
             && p->code.result.u.var_id == i) {
                 cntAssign ++;
@@ -1144,7 +1160,6 @@ InterCodes* optmize_copyPropagation(InterCodes* inCodes) {
             }
             p = p->next;
         }
-        printf("[dubug]t%d:%d\n", i, cntAssign);
         // 替代所有引用点
         if (cntAssign == 1) {
             Operand tmp = assign->code.arg1;
@@ -1155,6 +1170,11 @@ InterCodes* optmize_copyPropagation(InterCodes* inCodes) {
                 }
                 if (p->code.arg2.kind == OP_TEMP && p->code.arg2.u.var_id == i) {
                     p->code.arg2 = tmp;
+                }
+                if ((p->code.kind == IR_RETURN || p->code.kind == IR_ARG
+                || p->code.kind == IR_PARAM || p->code.kind == IR_WRITE
+                ) && p->code.result.kind == OP_TEMP && p->code.result.u.var_id == i) {
+                    p->code.result = tmp;
                 }
                 p = p->next;
             }
