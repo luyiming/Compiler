@@ -17,6 +17,11 @@ gen_ir:
 	bison src/syntax.y $(BFLAGS) -o out/syntax.tab.c
 	$(CC) out/syntax.tab.c src/gen_ir.c $(CSOURCE) $(CFLAGS) -o out/gen_ir
 
+gen_raw_ir:
+	@mkdir -p out
+	flex -o out/lex.yy.c src/lexical.l
+	bison src/syntax.y $(BFLAGS) -o out/syntax.tab.c
+	$(CC) -D NO_OPTIMIZE out/syntax.tab.c src/gen_ir.c $(CSOURCE) $(CFLAGS) -o out/gen_ir
 
 testall: test_semantic_check test_gen_ir
 

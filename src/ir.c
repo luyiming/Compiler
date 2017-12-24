@@ -980,8 +980,10 @@ static void printOperand(Operand op) {
 void generate_ir(ASTNode* Program) {
     InterCodes* codes = translate_Program(Program);
 
-    codes = optmize_copyPropagation(codes);
+#ifndef NO_OPTIMIZE
+    // codes = optmize_copyPropagation(codes);
     codes = optimize_ir(codes);
+#endif
 
     for (InterCodes* p = codes; p != NULL; p = p->next) {
         switch(p->code.kind) {
@@ -1393,7 +1395,7 @@ InterCodes* optimize_ir(InterCodes* codes) {
     int step = 1;
     do {
         codes = optimize_one_run(codes, &changed);
-        fprintf(stderr, "optim %d\n", step++);
+        // fprintf(stderr, "optim %d\n", step++);
     } while (changed);
     return codes;
 }
