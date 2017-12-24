@@ -9,6 +9,9 @@
 InterCodes* newInterCodes() {
     InterCodes* p = (InterCodes*)malloc(sizeof(InterCodes));
     p->next = p->prev = NULL;
+    p->code.result.u.var_id = -1;
+    p->code.arg1.u.var_id = -1;
+    p->code.arg2.u.var_id = -1;
     return p;
 }
 
@@ -19,9 +22,9 @@ ArgNode* newArgNode(int var_id) {
     return arg;
 }
 
+int variableId = 1;
 int newVariableId() {
-    static int id = 1;
-    return id++;
+    return variableId++;
 }
 
 int newLabelId() {
@@ -70,6 +73,27 @@ InterCodes* concatInterCodes(int count, ...) {
 
     va_end(argp);
     return head;
+}
+
+InterCodes* deleteInterCode(InterCodes *head, InterCodes *del) {
+    InterCodes *newHead = head;
+    if (head == NULL || del == NULL) return NULL;
+    if (head != del && del->next != NULL) {
+        del->prev->next = del->next;
+        del->next->prev = del->prev;
+    }
+    else if (head != del) {
+        del->prev->next = NULL;
+    }
+    else if (del->next != NULL) {
+        del->next->prev = NULL;
+        newHead = del->next;
+    }
+    else {
+        newHead = NULL;
+    }
+    //TODO: free (InterCodes*)del
+    return newHead;
 }
 
 InterCodes* genLabelCode(int label_id) {
@@ -135,11 +159,7 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
         codes->code.result.kind = OP_TEMP;
         codes->code.result.u.var_id = place;
         Symbol sym = lookupSymbol(Exp->child->val.c, true);
-        // if (sym->u.type->kind != BASIC) {
-        //     codes->code.arg1.kind = OP_ADDR;
-        // } else {
-            codes->code.arg1.kind = OP_VARIABLE;
-        // }
+        codes->code.arg1.kind = OP_VARIABLE;
         codes->code.arg1.symbol = sym;
     } else if(Exp->child->type == AST_FLOAT) {
         assert(0);
@@ -960,6 +980,7 @@ static void printOperand(Operand op) {
 void generate_ir(ASTNode* Program) {
     InterCodes* codes = translate_Program(Program);
 
+    codes = optmize_copyPropagation(codes);
     codes = optimize_ir(codes);
 
     for (InterCodes* p = codes; p != NULL; p = p->next) {
@@ -1112,6 +1133,57 @@ void generate_ir(ASTNode* Program) {
             default: assert(0);
         }
     }
+}
+
+InterCodes* optmize_copyPropagation(InterCodes* inCodes) {
+    assert(inCodes);
+    InterCodes* outCodes = inCodes;
+
+    for (int i = 1; i < variableId; i ++) {
+        int cntAssign = 0;
+        InterCodes* p = outCodes, *assign;
+        // 找到仅被赋值一次的临时变量
+        while (p != NULL) {
+            if ((p->code.kind == IR_ADD || p->code.kind == IR_SUB
+            || p->code.kind == IR_MUL || p->code.kind == IR_DIV
+            || p->code.kind == IR_ADDR || p->code.kind == IR_DEREF_L
+            || p->code.kind == IR_CALL || p->code.kind == IR_READ
+            ) && p->code.result.kind == OP_TEMP && p->code.result.u.var_id == i) {
+                cntAssign = 2;
+                break;
+            }
+
+            if (p->code.kind == IR_ASSIGN && p->code.result.kind == OP_TEMP
+            && p->code.result.u.var_id == i) {
+                cntAssign ++;
+                assign = p;
+                if (cntAssign > 1) break;
+            }
+            p = p->next;
+        }
+        // 替代所有引用点
+        if (cntAssign == 1) {
+            Operand tmp = assign->code.arg1;
+            InterCodes *p = outCodes;
+            while (p != NULL) {
+                if (p->code.arg1.kind == OP_TEMP && p->code.arg1.u.var_id == i) {
+                    p->code.arg1 = tmp;
+                }
+                if (p->code.arg2.kind == OP_TEMP && p->code.arg2.u.var_id == i) {
+                    p->code.arg2 = tmp;
+                }
+                if ((p->code.kind == IR_RETURN || p->code.kind == IR_ARG
+                || p->code.kind == IR_PARAM || p->code.kind == IR_WRITE
+                ) && p->code.result.kind == OP_TEMP && p->code.result.u.var_id == i) {
+                    p->code.result = tmp;
+                }
+                p = p->next;
+            }
+            // 消除临时变量
+            outCodes = deleteInterCode(outCodes, assign);
+        }
+    }
+    return outCodes;
 }
 
 void peek_basic_block(InterCodes* codes, InterCodes** start_, InterCodes** end_) {
