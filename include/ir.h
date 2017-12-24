@@ -6,7 +6,7 @@
 
 typedef struct {
     //todo: add OP_DEREF
-    enum { OP_TEMP, OP_VARIABLE, OP_CONSTANT, OP_ADDR, OP_LABEL, OP_FUNCTION } kind;
+    enum { OP_TEMP, OP_VARIABLE, OP_CONSTANT, OP_LABEL, OP_FUNCTION } kind;
     union {
         int var_id;
         int value;
@@ -95,6 +95,9 @@ InterCodes* translate_DecList(ASTNode *DecList);
 InterCodes* translate_Dec(ASTNode *Dec);
 
 void generate_ir(ASTNode* Program);
+
+void peek_basic_block(InterCodes* codes, InterCodes** start, InterCodes** end);
+InterCodes* optimize_ir(InterCodes* codes);
 
 #define LABEL_FALL 0
 
