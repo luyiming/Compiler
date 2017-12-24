@@ -97,6 +97,8 @@ InterCodes* translate_Dec(ASTNode *Dec);
 void generate_ir(ASTNode* Program);
 
 InterCodes* optmize_copyPropagation(InterCodes* inCodes);
+void peek_basic_block(InterCodes* codes, InterCodes** start, InterCodes** end);
+InterCodes* optimize_ir(InterCodes* codes);
 
 #define LABEL_FALL 0
 

@@ -981,6 +981,7 @@ void generate_ir(ASTNode* Program) {
     InterCodes* codes = translate_Program(Program);
 
     codes = optmize_copyPropagation(codes);
+    codes = optimize_ir(codes);
 
     for (InterCodes* p = codes; p != NULL; p = p->next) {
         switch(p->code.kind) {
@@ -1183,4 +1184,184 @@ InterCodes* optmize_copyPropagation(InterCodes* inCodes) {
         }
     }
     return outCodes;
+void peek_basic_block(InterCodes* codes, InterCodes** start_, InterCodes** end_) {
+    InterCodes *start, *end;
+    for(start = codes; start != NULL; start = start->next) {
+        if (start->code.kind == IR_ASSIGN || start->code.kind == IR_ADD || 
+            start->code.kind == IR_SUB  || start->code.kind == IR_MUL ||
+            start->code.kind == IR_DIV) {
+                break;
+            }
+    }
+
+    for(end = start; end != NULL; end = end->next) {
+        if (end->code.kind != IR_ASSIGN && end->code.kind != IR_ADD && 
+            end->code.kind != IR_SUB  && end->code.kind != IR_MUL &&
+            end->code.kind != IR_DIV) {
+                if (end->code.kind == IR_RELOP || end->code.kind == IR_RETURN)
+                    end = end->next;
+                break;
+            }
+    }
+
+    *start_ = start;
+    *end_ = end;
+}
+
+struct GenNode {
+    int size;
+    InterCodes* gen[200];
+};
+
+bool isOperandEqual(Operand op1, Operand op2) {
+    if (op1.kind == op2.kind) {
+        if (op1.kind == OP_TEMP && op1.u.var_id == op2.u.var_id) {
+            return true;
+        } else if (op1.kind == OP_VARIABLE && op1.symbol == op2.symbol) {
+            return true;
+        }
+    }
+    return false;
+}
+
+InterCodes* optimize_one_run(InterCodes* codes, bool *changed) {
+    *changed = false;
+    InterCodes *start, *end = codes;
+    while (end != NULL) {
+        peek_basic_block(end->next, &start, &end);
+        struct GenNode gens;
+        gens.size = 0;
+        for (InterCodes *p = start; p != end; p = p->next) {
+            if (p->code.kind == IR_ASSIGN) {
+                // replace
+                for (int i = 0; i < gens.size; i++) {
+                   if (isOperandEqual(p->code.arg1, gens.gen[i]->code.result)) {
+                       p->code.arg1 = gens.gen[i]->code.arg1;
+                       *changed = true;
+                   }
+                }
+
+                // kill all previous gen
+                for (int i = 0; i < gens.size; i++) {
+                   if (isOperandEqual(p->code.result, gens.gen[i]->code.result)) {
+                       gens.gen[i] = gens.gen[gens.size - 1];
+                       (gens.size)--;
+                   }
+                }
+                // add new gen
+                gens.gen[gens.size] = p;
+                gens.size++;
+            }
+            else if (p->code.kind == IR_ADD || p->code.kind == IR_SUB ||
+                        p->code.kind == IR_MUL || p->code.kind == IR_DIV || p->code.kind == IR_RELOP) {
+                // replace
+                for (int i = 0; i < gens.size; i++) {
+                   if (isOperandEqual(p->code.arg1, gens.gen[i]->code.result)) {
+                       p->code.arg1 = gens.gen[i]->code.arg1;
+                       *changed = true;
+                   }
+                   if (isOperandEqual(p->code.arg2, gens.gen[i]->code.result)) {
+                       p->code.arg2 = gens.gen[i]->code.arg1;
+                       *changed = true;
+                   } 
+                }
+
+                // kill all previous gen
+                for (int i = 0; i < gens.size; i++) {
+                   if (isOperandEqual(p->code.result, gens.gen[i]->code.result)) {
+                       gens.gen[i] = gens.gen[gens.size - 1];
+                       (gens.size)--;
+                   }
+                }
+            }
+            else if (p->code.kind == IR_RETURN) {
+                // replace
+                for (int i = 0; i < gens.size; i++) {
+                   if (isOperandEqual(p->code.result, gens.gen[i]->code.result)) {
+                       p->code.result = gens.gen[i]->code.arg1;
+                       *changed = true;
+                   }
+                }
+
+                // kill all previous gen
+                for (int i = 0; i < gens.size; i++) {
+                   if (isOperandEqual(p->code.result, gens.gen[i]->code.result)) {
+                       gens.gen[i] = gens.gen[gens.size - 1];
+                       (gens.size)--;
+                   }
+                }
+            }
+        }
+    }
+
+    // constant pre-computation: t98 := #0 * #4  -> t98 := #0
+    for (InterCodes *p = codes; p != NULL; p = p->next) {
+        if (p->code.kind == IR_ADD || p->code.kind == IR_SUB || p->code.kind == IR_MUL || p->code.kind == IR_DIV) {
+            if (p->code.arg1.kind == OP_CONSTANT && p->code.arg2.kind == OP_CONSTANT) {
+                *changed = true;
+                int new_val;
+                switch (p->code.kind) {
+                    case IR_ADD: new_val = p->code.arg1.u.value + p->code.arg2.u.value; break;
+                    case IR_SUB: new_val = p->code.arg1.u.value - p->code.arg2.u.value; break;
+                    case IR_MUL: new_val = p->code.arg1.u.value * p->code.arg2.u.value; break;
+                    case IR_DIV: new_val = p->code.arg1.u.value / p->code.arg2.u.value; break;
+                    default: assert(0); break;
+                }
+                p->code.kind = IR_ASSIGN;
+                p->code.arg1.kind = OP_CONSTANT;
+                p->code.arg1.u.value = new_val;
+            }
+        }
+    }
+
+    // remove dead code
+    struct GenNode dead_codes;
+    dead_codes.size = 0;
+    // add dead codes
+    for (InterCodes *p = codes; p != NULL; p = p->next) {
+        if (p->code.kind == IR_ASSIGN) {
+            dead_codes.gen[dead_codes.size] = p;
+            (dead_codes.size)++;
+        }
+    }
+    // check dead codes
+    for (InterCodes *p = codes; p != NULL; p = p->next) {
+        for (int i = 0; i < dead_codes.size; i++) {
+            if ((p->code.kind == IR_ASSIGN || p->code.kind == IR_ADDR || p->code.kind == IR_DEREF_R || p->code.kind == IR_DEREF_L) && isOperandEqual(p->code.arg1, dead_codes.gen[i]->code.result)) {
+                dead_codes.gen[i] = dead_codes.gen[dead_codes.size - 1];
+                (dead_codes.size)--;
+            } else if ((p->code.kind == IR_RETURN || p->code.kind == IR_DEC || p->code.kind == IR_ARG || p->code.kind == IR_PARAM) && isOperandEqual(p->code.result, dead_codes.gen[i]->code.result)) {
+                dead_codes.gen[i] = dead_codes.gen[dead_codes.size - 1];
+                (dead_codes.size)--;
+            } else if ((p->code.kind == IR_ADD || p->code.kind == IR_SUB || p->code.kind == IR_MUL || p->code.kind == IR_DIV || p->code.kind == IR_RELOP) 
+                        && (isOperandEqual(p->code.arg1, dead_codes.gen[i]->code.result) || isOperandEqual(p->code.arg2, dead_codes.gen[i]->code.result))) {
+                dead_codes.gen[i] = dead_codes.gen[dead_codes.size - 1];
+                (dead_codes.size)--;
+            }
+        }
+    }
+    // remove dead codes
+    for (int i = 0; i < dead_codes.size; i++) {
+        *changed = true;
+        if (dead_codes.gen[i]->next != NULL) {
+            dead_codes.gen[i]->next->prev = dead_codes.gen[i]->prev;
+        }
+        if (dead_codes.gen[i]->prev != NULL) {
+            dead_codes.gen[i]->prev->next = dead_codes.gen[i]->next;
+        } else {
+            codes = dead_codes.gen[i]->next;
+        }
+    }
+
+    return codes;
+}
+
+InterCodes* optimize_ir(InterCodes* codes) {
+    bool changed = false;
+    int step = 1;
+    do {
+        codes = optimize_one_run(codes, &changed);
+        fprintf(stderr, "optim %d\n", step++);
+    } while (changed);
+    return codes;
 }
