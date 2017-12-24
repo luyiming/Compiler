@@ -172,7 +172,7 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
             code3->code.arg2.u.value = getTypeSize(Exp->child->expType);
 
             int t4 = newVariableId();
-            InterCodes* code4 = newInterCodes();        
+            InterCodes* code4 = newInterCodes();
             code4->code.kind = IR_ADD;
             code4->code.result.kind = OP_TEMP;
             code4->code.result.u.var_id = t4;
@@ -183,7 +183,7 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
 
             int t5 = newVariableId();
             InterCodes* code5 = translate_Exp(Exp->child->sibling->sibling, t5);
-            
+
             InterCodes* code6 = newInterCodes();
             code6->code.kind = IR_DEREF_L;
             code6->code.result.kind = OP_TEMP;
@@ -312,7 +312,7 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
         codes = concatInterCodes(3, code1, code2, code3);
     } else if (Exp->child->type == AST_MINUS) { // Exp -> MINUS Exp
         int t1 = newVariableId();
-        InterCodes* code1 = translate_Exp(Exp->child, t1);
+        InterCodes* code1 = translate_Exp(Exp->child->sibling, t1);
 
         InterCodes* code2 = newInterCodes();
         code2->code.kind = IR_SUB;
@@ -404,11 +404,7 @@ InterCodes* translate_Exp(ASTNode* Exp, int place) {
                 // TODO: dealloc arg_list
             }
         }
-    }
-    else if (Exp->child->type == AST_LP) {
-        codes = translate_Exp(Exp->child->sibling, place);
-    }
-    else if (Exp->child->type == AST_Exp && Exp->child->sibling->type == AST_LB) { // array
+    } else if (Exp->child->type == AST_Exp && Exp->child->sibling->type == AST_LB) { // array
         int t1 = newVariableId();
         int t2 = newVariableId();
         InterCodes* code1 = translate_Exp(Exp->child, t1);
