@@ -30,6 +30,7 @@ void gen_global_seg() {
 }
 
 void gen_read_func() {
+    println();
     println("read:");
     printIns("li $v0, 4");
     printIns("la $a0, _prompt");
@@ -40,6 +41,7 @@ void gen_read_func() {
 }
 
 void gen_write_func() {
+    println();
     println("write:");
     printIns("li $v0, 1");
     printIns("syscall");
@@ -63,6 +65,7 @@ void gen_text_seg(InterCodes* ics) {
                 break;
             }
             case IR_FUNC: {
+                println();
                 println("%s:", ic->code.result.symbol->name);
                 clear_lvas();
                 gen_prologue();
@@ -118,7 +121,9 @@ void gen_text_seg(InterCodes* ics) {
                 break;
             }
             case IR_ADDR: {
-                //TODO
+                Reg* rr = get_reg(&ic->code.result);
+                gen_addr(rr, &ic->code.arg1);
+                spill_reg(rr);
                 break;
             }
             case IR_DEREF_L: {
@@ -171,7 +176,7 @@ void gen_text_seg(InterCodes* ics) {
                 break;
             }
             case IR_DEC: {
-                unimplemented();
+                add_array2lva(&ic->code.result, ic->code.size);
                 break;
             }
             case IR_ARG: {
@@ -297,6 +302,19 @@ LocalVarAddr* add_lva(Operand* opd) {
     return lva;
 }
 
+void add_array2lva(Operand* opd, int size) {
+    assert(opd->kind == OP_TEMP);
+    LocalVarAddr* lva = (LocalVarAddr*)malloc(sizeof(LocalVarAddr));
+    lva->kind = LV_TEMP;
+    lva->u.id = opd->u.var_id;
+    lva->off = (lva_off -= size);
+    LvaList *node = (LvaList*)malloc(sizeof(LvaList));
+    node->lva = lva;
+    node->next = lva_list;
+    lva_list = node;
+    printIns("addi $sp, $sp, -%d", size); // allocate
+}
+
 void add_param2lva(Operand* opd) {
     assert(opd->kind == OP_VARIABLE);
     LocalVarAddr* lva = (LocalVarAddr*)malloc(sizeof(LocalVarAddr));
@@ -325,4 +343,9 @@ void gen_epilogue() {
     printIns("move $sp, $fp");
     printIns("lw $fp, 0($sp)");
     printIns("addi $sp, $sp, 4");
+}
+
+void gen_addr(Reg* r, Operand* opd) {
+    LocalVarAddr* lva = get_lva(opd);
+    printIns("la %s, %d($fp)", r->name, lva->off);
 }

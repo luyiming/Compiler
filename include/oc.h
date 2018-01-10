@@ -40,8 +40,10 @@ void spill_reg(Reg* r);
 LocalVarAddr* get_lva(Operand* opd);
 LocalVarAddr* add_lva(Operand* opd);
 void add_param2lva(Operand* opd);
+void add_array2lva(Operand* opd, int size);
 void clear_lvas();
 void gen_prologue();
 void gen_epilogue();
+void gen_addr(Reg* r, Operand* opd);
 
 #endif
