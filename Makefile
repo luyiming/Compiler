@@ -1,6 +1,6 @@
 CC := gcc
 CFLAGS := -lfl -ly -I./include -std=gnu11 -g
-CSOURCE := src/AST.c src/semantic.c src/common.c src/rb_tree.c src/sym_table.c src/ir.c
+CSOURCE := src/AST.c src/semantic.c src/common.c src/rb_tree.c src/sym_table.c src/ir.c src/oc.c
 BFLAGS := -d -v --locations
 
 parser: ir
@@ -22,6 +22,12 @@ gen_raw_ir:
 	flex -o out/lex.yy.c src/lexical.l
 	bison src/syntax.y $(BFLAGS) -o out/syntax.tab.c
 	$(CC) -D NO_OPTIMIZE out/syntax.tab.c src/gen_ir.c $(CSOURCE) $(CFLAGS) -o out/gen_ir
+
+gen_oc:
+	@mkdir -p out
+	flex -o out/lex.yy.c src/lexical.l
+	bison src/syntax.y $(BFLAGS) -o out/syntax.tab.c
+	$(CC) out/syntax.tab.c src/gen_oc.c $(CSOURCE) $(CFLAGS) -o out/gen_oc
 
 testall: test_semantic_check test_gen_ir
 

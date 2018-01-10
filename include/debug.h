@@ -9,7 +9,7 @@
 
 // #define ERROR_AST
 
-#define NO_OPTIMIZE
+// #define NO_OPTIMIZE
 
 #include <stdio.h>
 #include <assert.h>

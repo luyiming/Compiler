@@ -3,6 +3,7 @@
 #include "AST.h"
 #include "debug.h"
 #include "ir.h"
+#include "oc.h"
 #include "sym_table.h"
 
 #ifdef YYDEBUG
