@@ -1,5 +1,11 @@
-int func(int func) {
+int func(int x) {
+  write(x);
+  return x * x;
 }
 int main () {
-  func(1);
+  int y, n;
+  y = read();
+  n = func(y);
+  write(n);
+  return 0;
 }

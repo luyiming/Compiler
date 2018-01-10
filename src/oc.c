@@ -161,9 +161,11 @@ void gen_text_seg(InterCodes* ics) {
                 break;
             }
             case IR_RETURN: {
-                gen_epilogue();
                 Reg* rr = get_reg(&ic->code.result);
                 printIns("move $v0, %s", rr->name);
+                // invoke gen_epilogue() after get_reg(...)
+                // avoid to reset $fp early
+                gen_epilogue();
                 printIns("jr $ra");
                 free_reg(rr);
                 break;
@@ -181,12 +183,14 @@ void gen_text_seg(InterCodes* ics) {
                 break;
             }
             case IR_CALL: {
-                Reg* rr = get_reg(&ic->code.result);
                 printIns("addi $sp, $sp, -4");
                 printIns("sw $ra, 0($sp)");
-                printIns("jal %s", ic->code.result.symbol->name);
+                printIns("jal %s", ic->code.arg1.symbol->name);
                 printIns("lw $ra, 0($sp)");
                 printIns("addi $sp, $sp, 4");
+                // don't invoke get_reg(...) before 'jal ...'
+                // avoid to allocate stack between ARG... and CALL...
+                Reg* rr = get_reg(&ic->code.result);
                 printIns("move %s, $v0", rr->name);
                 spill_reg(rr);
                 break;
@@ -299,6 +303,10 @@ void add_param2lva(Operand* opd) {
     lva->kind = LV_VAR;
     lva->u.name = opd->symbol->name;
     lva->off = (param_off += 4);
+    LvaList *node = (LvaList*)malloc(sizeof(LvaList));
+    node->lva = lva;
+    node->next = lva_list;
+    lva_list = node;
 }
 
 void clear_lvas() {
