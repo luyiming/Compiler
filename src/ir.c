@@ -801,7 +801,12 @@ InterCodes* translate_Args(ASTNode *Args, ArgNode** arg_list) {
 InterCodes* translate_Program(ASTNode *Program) {
     assert(Program);
     assert(Program->type == AST_Program);
-    return translate_ExtDefList(Program->child);
+    InterCodes* codes = translate_ExtDefList(Program->child);
+#ifndef NO_OPTIMIZE
+    // codes = optmize_copyPropagation(codes);
+    codes = optimize_ir(codes);
+#endif
+    return codes;
 }
 
 InterCodes* translate_ExtDefList(ASTNode *ExtDefList) {
@@ -980,11 +985,6 @@ static void printOperand(Operand op) {
 
 void generate_ir(ASTNode* Program) {
     InterCodes* codes = translate_Program(Program);
-
-#ifndef NO_OPTIMIZE
-    // codes = optmize_copyPropagation(codes);
-    codes = optimize_ir(codes);
-#endif
 
     for (InterCodes* p = codes; p != NULL; p = p->next) {
         switch(p->code.kind) {
