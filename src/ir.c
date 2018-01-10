@@ -5,6 +5,7 @@
 #include "AST.h"
 #include "ir.h"
 #include "sym_table.h"
+#include "debug.h"
 
 InterCodes* newInterCodes() {
     InterCodes* p = (InterCodes*)malloc(sizeof(InterCodes));

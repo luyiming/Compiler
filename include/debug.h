@@ -9,6 +9,8 @@
 
 // #define ERROR_AST
 
+#define NO_OPTIMIZE
+
 #include <stdio.h>
 #include <assert.h>
 #define panic(x) printf(x "\n");assert(0)
