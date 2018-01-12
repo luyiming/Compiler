@@ -1,4 +1,4 @@
-#include <malloc.h>
+#include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -101,9 +101,10 @@ void freeAST(ASTNode *parent) {
     if (parent == NULL)
         return;
 
-    for (ASTNode *p = parent->child; p != NULL; p = p->sibling) {
-        freeAST(p);
+    for (ASTNode *p = parent->child; p != NULL; ) {
+        ASTNode* h = p;
+        p = p->sibling;
+        freeAST(h);
     }
-
     free(parent);
 }
