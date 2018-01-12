@@ -102,6 +102,7 @@ InterCodes* genLabelCode(int label_id) {
     codes->code.kind = IR_LABEL;
     codes->code.result.kind = OP_LABEL;
     codes->code.result.u.label_id = label_id;
+    return codes;
 }
 
 InterCodes* genGotoCode(int label_id) {
@@ -109,6 +110,7 @@ InterCodes* genGotoCode(int label_id) {
     codes->code.kind = IR_GOTO;
     codes->code.result.kind = OP_LABEL;
     codes->code.result.u.label_id = label_id;
+    return codes;
 }
 
 enum RELOP_TYPE get_relop(ASTNode *RELOP) {

@@ -3,6 +3,13 @@ CFLAGS := -lfl -ly -I./include -std=gnu11 -g
 CSOURCE := src/AST.c src/semantic.c src/common.c src/rb_tree.c src/sym_table.c src/ir.c src/oc.c
 BFLAGS := -d -v --locations
 
+ifneq ($(OS),Windows_NT)
+    UNAME_S := $(shell uname -s)
+    ifeq ($(UNAME_S),Darwin)
+        CFLAGS += -I/usr/local/opt/flex/include -L/usr/local/opt/flex/lib -L/usr/local/opt/bison/lib
+    endif
+endif
+
 parser: ir
 
 semantic_check:
