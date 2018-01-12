@@ -1362,7 +1362,10 @@ InterCodes* optimize_one_run(InterCodes* codes, bool *changed) {
     // check dead codes
     for (InterCodes *p = codes; p != NULL; p = p->next) {
         for (int i = 0; i < dead_codes.size; ) {
-            if ((p->code.kind == IR_ASSIGN || p->code.kind == IR_ADDR || p->code.kind == IR_DEREF_R || p->code.kind == IR_DEREF_L) && isOperandEqual(p->code.arg1, dead_codes.gen[i]->code.result)) {
+            if ((p->code.kind == IR_ASSIGN || p->code.kind == IR_ADDR || p->code.kind == IR_DEREF_R) && isOperandEqual(p->code.arg1, dead_codes.gen[i]->code.result)) {
+                dead_codes.gen[i] = dead_codes.gen[dead_codes.size - 1];
+                (dead_codes.size)--;
+            } else if (p->code.kind == IR_DEREF_L && (isOperandEqual(p->code.result, dead_codes.gen[i]->code.result) || isOperandEqual(p->code.arg1, dead_codes.gen[i]->code.result))) {
                 dead_codes.gen[i] = dead_codes.gen[dead_codes.size - 1];
                 (dead_codes.size)--;
             } else if ((p->code.kind == IR_RETURN || p->code.kind == IR_DEC || p->code.kind == IR_ARG || p->code.kind == IR_PARAM || p->code.kind == IR_READ || p->code.kind == IR_WRITE) && isOperandEqual(p->code.result, dead_codes.gen[i]->code.result)) {
