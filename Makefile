@@ -10,7 +10,11 @@ ifneq ($(OS),Windows_NT)
     endif
 endif
 
-parser: ir
+gen_AST:
+	@mkdir -p out
+	flex -o out/lex.yy.c src/lexical.l
+	bison src/syntax.y $(BFLAGS) -o out/syntax.tab.c
+	$(CC) out/syntax.tab.c src/gen_AST.c $(CSOURCE) $(CFLAGS) -o out/gen_AST
 
 semantic_check:
 	@mkdir -p out
